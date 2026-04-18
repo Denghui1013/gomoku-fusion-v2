@@ -1,110 +1,77 @@
-# Gomoku Fusion VPS 部署步骤
+# Gomoku Fusion VPS 上线手册（当前基线）
 
-目标：用 `standalone/gomoku-fusion` 独立版替换 VPS 上当前主项目服务，并继续使用：
+更新时间：2026-04-18  
+适用场景：服务器上**已经有域名 + SSL**，本次只上线 `gomoku-fusion-v2` 最新版本。
 
-- 域名：`https://yanyan-gomoku.duckdns.org`
-- 端口：`3000`
-- Nginx 反代：`127.0.0.1:3000`
+---
 
-## 当前判断
+## 1. 统一约定（请按此执行）
 
-VPS 当前 3000 端口运行的是旧主项目根目录的 `server.ts`：
+- 仓库：`https://github.com/Denghui1013/gomoku-fusion-v2`
+- 服务器目录：`/opt/gomoku-fusion-v2`
+- 应用端口：`3010`
+- PM2 进程名：`gomoku-fusion-v2`
+- Nginx：保持原有域名与证书，只把反代目标指向 `127.0.0.1:3010`
 
-```bash
-/usr/bin/node ... /root/gomoku-game/... server.ts
-```
+> 说明：不要再混用 3000/3010。本文档默认生产新版本走 3010。
 
-这个旧服务没有完整承载独立版的 Next API 路由，因此 App 请求：
+---
 
-```text
-POST /api/network/create-room
-```
-
-会进入旧服务，出现 500 或 404。
-
-独立版应运行：
+## 2. 首次部署 / 拉取最新版
 
 ```bash
-cd /root/gomoku-game/standalone/gomoku-fusion
-PORT=3000 npm run start:multiplayer
-```
-
-该入口会同时承载：
-
-- Next 页面：`/mode`、`/game`、`/rank`、`/multiplayer`
-- REST API：`/api/network/create-room` 等
-- WebSocket：`/api/network/ws`
-
-## 推荐上线流程
-
-### 1. 备份旧项目
-
-```bash
-cd /root
-cp -a gomoku-game "gomoku-game.backup.$(date +%Y%m%d-%H%M%S)"
-```
-
-### 2. 停止旧服务
-
-如果使用 PM2：
-
-```bash
-pm2 list
-pm2 stop gomoku
-```
-
-如果是手动进程：
-
-```bash
-ps -ef | grep gomoku-game
-kill <PID>
-```
-
-### 3. 更新代码
-
-如果 VPS 上是 git 仓库：
-
-```bash
-cd /root/gomoku-game
+cd /opt
+[ -d gomoku-fusion-v2 ] || git clone https://github.com/Denghui1013/gomoku-fusion-v2.git
+cd /opt/gomoku-fusion-v2
 git pull
 ```
 
-如果不是 git 仓库，就把本地 `standalone/gomoku-fusion` 上传到：
+---
 
-```text
-/root/gomoku-game/standalone/gomoku-fusion
-```
-
-### 4. 安装依赖并构建
+## 3. 安装依赖并构建
 
 ```bash
-cd /root/gomoku-game/standalone/gomoku-fusion
-npm install
+cd /opt/gomoku-fusion-v2
+npm ci
 npm run build
 ```
 
-### 5. 用 PM2 启动独立版
+说明：
+
+- 仓库已包含 `.npmrc`：`legacy-peer-deps=true`
+- 遇到 peer dependency 冲突时，不需要额外手工加参数
+
+---
+
+## 4. 用 PM2 启动（或重启）新版本
 
 ```bash
-cd /root/gomoku-game/standalone/gomoku-fusion
-PORT=3000 pm2 start npm --name gomoku-fusion -- run start:multiplayer
+cd /opt/gomoku-fusion-v2
+PORT=3010 pm2 start npm --name gomoku-fusion-v2 -- run start:multiplayer || PORT=3010 pm2 restart gomoku-fusion-v2 --update-env
 pm2 save
+pm2 status
+pm2 logs gomoku-fusion-v2 --lines 80
 ```
 
-如果旧进程也叫 `gomoku`，建议确认后删除旧进程：
+---
+
+## 5. 本机健康检查（必须先过）
 
 ```bash
-pm2 delete gomoku
-pm2 save
+curl -I http://127.0.0.1:3010/mode
 ```
 
-### 6. Nginx 保持现有配置
+期望：`HTTP/1.1 200 OK`
 
-当前配置已经正确：
+---
+
+## 6. Nginx 切流（已有域名+SSL场景）
+
+只改你的现有 `443 server` 中 `location /` 的转发目标：
 
 ```nginx
 location / {
-    proxy_pass http://127.0.0.1:3000;
+    proxy_pass http://127.0.0.1:3010;
     proxy_http_version 1.1;
 
     proxy_set_header Host $host;
@@ -120,42 +87,55 @@ location / {
 }
 ```
 
-如无特殊需求，不需要再改 Nginx。
-
-### 7. 验证
-
-本机验证：
+应用配置：
 
 ```bash
-curl -I http://127.0.0.1:3000/mode
-curl -i -X POST http://127.0.0.1:3000/api/network/create-room \
-  -H "Content-Type: application/json" \
-  -d '{"playerName":"test","playerId":"host_test"}'
+sudo nginx -t && sudo systemctl reload nginx
 ```
 
-公网验证：
+---
+
+## 7. 域名健康检查
 
 ```bash
 curl -I https://yanyan-gomoku.duckdns.org/mode
 curl -i -X POST https://yanyan-gomoku.duckdns.org/api/network/create-room \
   -H "Content-Type: application/json" \
-  -d '{"playerName":"test","playerId":"host_test"}'
+  -d '{"playerName":"test","playerId":"ecs-check"}'
 ```
 
-WebSocket 地址应保持：
+WebSocket 地址应为：
 
 ```text
 wss://yanyan-gomoku.duckdns.org/api/network/ws
 ```
 
-## 回滚
+---
 
-如果上线后异常：
+## 8. 联机冒烟清单（手机 + 浏览器）
+
+1. A 端创建房间  
+2. B 端加入房间  
+3. 文字聊天互发  
+4. 表情聊天互发  
+5. 正常对局至胜负  
+6. 认输结算  
+7. 再来一局邀请 / 接受 / 拒绝
+
+---
+
+## 9. 回滚（秒级）
+
+只改 Nginx `proxy_pass` 回旧端口（例如 `127.0.0.1:3000`），然后：
 
 ```bash
-pm2 stop gomoku-fusion
-pm2 start gomoku
-pm2 save
+sudo nginx -t && sudo systemctl reload nginx
 ```
 
-如果旧进程已经删除，就进入备份目录按旧方式恢复。
+如需同时回滚 PM2：
+
+```bash
+pm2 stop gomoku-fusion-v2
+pm2 start 旧进程名
+pm2 save
+```

@@ -8,6 +8,49 @@
 - 本地项目目录：`E:\GPT\gomoku-game`
 - Node 版本建议：`22.x`
 
+---
+
+## 0. 快速上线（已有域名 + SSL，推荐）
+
+如果你的服务器已经配置好了域名和 HTTPS（你当前就是这个场景），请优先使用下面流程，不要重复申请证书：
+
+```bash
+# 统一参数（当前推荐）
+# 项目目录：/opt/gomoku-fusion-v2
+# 应用端口：3010
+# PM2 名称：gomoku-fusion-v2
+
+cd /opt
+[ -d gomoku-fusion-v2 ] || git clone https://github.com/Denghui1013/gomoku-fusion-v2.git
+cd /opt/gomoku-fusion-v2
+git pull
+npm ci
+npm run build
+PORT=3010 pm2 start npm --name gomoku-fusion-v2 -- run start:multiplayer || PORT=3010 pm2 restart gomoku-fusion-v2 --update-env
+pm2 save
+```
+
+本机先验证：
+
+```bash
+curl -I http://127.0.0.1:3010/mode
+```
+
+然后把现有 Nginx 站点 `location /` 的 `proxy_pass` 改为：
+
+```nginx
+proxy_pass http://127.0.0.1:3010;
+```
+
+应用配置并验证：
+
+```bash
+sudo nginx -t && sudo systemctl reload nginx
+curl -I https://yanyan-gomoku.duckdns.org/mode
+```
+
+> 注意：本文后续章节里如果出现 `gomoku-game / gomoku / 3000`，按你当前环境替换为 `gomoku-fusion-v2 / gomoku-fusion-v2 / 3010`。
+
 ## 一、云端首次部署
 
 ### 1. 更新系统并安装基础工具
