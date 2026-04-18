@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="稳胜防守">
+  <defs>
+    <linearGradient id="board" x1="90" y1="108" x2="410" y2="400" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffe2ad"/>
+      <stop offset=".56" stop-color="#e8bb6b"/>
+      <stop offset="1" stop-color="#c9913f"/>
+    </linearGradient>
+    <linearGradient id="edge" x1="132" y1="374" x2="388" y2="402" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#9f6727"/>
+      <stop offset="1" stop-color="#6f461f"/>
+    </linearGradient>
+    <linearGradient id="shield" x1="164" y1="122" x2="344" y2="356" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2ccf8b"/>
+      <stop offset=".55" stop-color="#0b5fa5"/>
+      <stop offset="1" stop-color="#103c75"/>
+    </linearGradient>
+    <radialGradient id="stoneBlack" cx="34%" cy="28%" r="72%">
+      <stop offset="0" stop-color="#697589"/>
+      <stop offset=".48" stop-color="#202938"/>
+      <stop offset="1" stop-color="#06090f"/>
+    </radialGradient>
+    <radialGradient id="stoneWhite" cx="34%" cy="28%" r="76%">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset=".58" stop-color="#f3f6fb"/>
+      <stop offset="1" stop-color="#cbd3df"/>
+    </radialGradient>
+    <filter id="shadow" x="-18%" y="-18%" width="136%" height="148%">
+      <feDropShadow dx="0" dy="20" stdDeviation="18" flood-color="#123b5b" flood-opacity=".22"/>
+    </filter>
+    <filter id="stoneShadow" x="-35%" y="-35%" width="170%" height="185%">
+      <feDropShadow dx="0" dy="11" stdDeviation="9" flood-color="#101827" flood-opacity=".24"/>
+    </filter>
+  </defs>
+  <g filter="url(#shadow)">
+    <path d="M112 134c8-16 24-25 42-24l240 14c19 1 32 17 29 36l-31 205c-3 18-19 30-37 28l-245-27c-18-2-30-18-27-36l29-196z" fill="url(#board)"/>
+    <path d="M84 330l26 36 245 27c18 2 34-10 37-28l31-205-26-35-31 203c-3 18-19 30-37 28L84 330z" fill="url(#edge)" opacity=".78"/>
+    <path d="M128 151l258 15M120 198l259 16M113 245l260 17M106 293l260 18M152 132l-30 219M196 135l-30 221M241 138l-30 223M286 140l-30 226M331 143l-30 228M376 146l-30 230" fill="none" stroke="#7d4c20" stroke-width="2.2" stroke-linecap="round" opacity=".28"/>
+    <path d="M256 105c52 28 96 28 131 16v85c0 78-47 124-131 159-84-35-131-81-131-159v-85c35 12 79 12 131-16z" fill="url(#shield)"/>
+    <path d="M256 133c39 20 72 20 99 12v60c0 58-34 92-99 119-65-27-99-61-99-119v-60c27 8 60 8 99-12z" fill="#ffffff" opacity=".15"/>
+    <path d="M207 239l35 35 70-85" fill="none" stroke="#ffffff" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+    <g filter="url(#stoneShadow)">
+      <circle cx="130" cy="211" r="26" fill="url(#stoneBlack)"/>
+      <circle cx="151" cy="315" r="26" fill="url(#stoneWhite)" stroke="#d6dce6" stroke-width="2"/>
+      <circle cx="381" cy="313" r="26" fill="url(#stoneBlack)"/>
+    </g>
+  </g>
+</svg>

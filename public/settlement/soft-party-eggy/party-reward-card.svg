@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 420" role="img" aria-label="party reward card golden board">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F5E6C8"/>
+      <stop offset=".52" stop-color="#EBC875"/>
+      <stop offset="1" stop-color="#0B5FA5"/>
+    </linearGradient>
+    <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity=".82"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".25"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-30%" width="140%" height="170%">
+      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#B45B00" flood-opacity=".28"/>
+    </filter>
+    <filter id="pop" x="-25%" y="-35%" width="150%" height="180%">
+      <feDropShadow dx="0" dy="14" stdDeviation="14" flood-color="#7A3D00" flood-opacity=".22"/>
+    </filter>
+  </defs>
+  <rect x="22" y="22" width="676" height="376" rx="46" fill="url(#bg)"/>
+  <rect x="30" y="30" width="660" height="360" rx="42" fill="none" stroke="#FFFFFF" stroke-width="10" opacity=".32"/>
+  <rect x="52" y="52" width="616" height="316" rx="36" fill="url(#glass)" stroke="#FFFFFF" stroke-width="4"/>
+  <rect x="382" y="82" width="210" height="42" rx="21" fill="#FFFFFF" opacity=".28"/>
+  <rect x="384" y="306" width="196" height="32" rx="16" fill="#FFFFFF" opacity=".24"/>
+  <circle cx="110" cy="96" r="38" fill="#FFFFFF" opacity=".38"/>
+  <circle cx="618" cy="330" r="42" fill="#FFFFFF" opacity=".22"/>
+  <g filter="url(#pop)">
+    <rect x="92" y="86" width="248" height="248" rx="34" fill="#D8A84C"/>
+    <rect x="118" y="112" width="196" height="196" rx="20" fill="#FFE39A"/>
+    <g stroke="#9D6123" stroke-width="4" opacity=".88">
+      <path d="M144 140 h144 M144 168 h144 M144 196 h144 M144 224 h144 M144 252 h144 M144 280 h144"/>
+      <path d="M144 140 v140 M172 140 v140 M200 140 v140 M228 140 v140 M256 140 v140 M288 140 v140"/>
+    </g>
+    <circle cx="216" cy="196" r="10" fill="#6C421E"/>
+    <circle cx="172" cy="168" r="8" fill="#6C421E"/>
+    <circle cx="260" cy="252" r="8" fill="#6C421E"/>
+    <circle cx="216" cy="280" r="8" fill="#6C421E"/>
+  </g>
+  <g>
+    <path d="M470 98 l22 45 50 7 -36 35 8 49 -44 -23 -44 23 8 -49 -36 -35 50 -7z" fill="#FFFFFF" opacity=".72"/>
+    <path d="M558 210 l16 32 36 5 -26 25 6 36 -32 -17 -32 17 6 -36 -26 -25 36 -5z" fill="#FFFFFF" opacity=".65"/>
+    <path d="M418 270 q48 42 110 0" fill="none" stroke="#FFFFFF" stroke-width="16" stroke-linecap="round" opacity=".55"/>
+  </g>
+</svg>

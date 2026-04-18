@@ -1,0 +1,1020 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Soft Strategy Gomoku Fusion Preview</title>
+    <style>
+      :root {
+        --sky: #edf4fb;
+        --sky-2: #d9eaf7;
+        --card: rgba(255, 255, 255, 0.88);
+        --card-solid: #ffffff;
+        --blue: #0b5fa5;
+        --blue-2: #1d8fe1;
+        --ink: #123b5b;
+        --muted: #3a5064;
+        --soft-muted: #6a7b8a;
+        --line: rgba(11, 95, 165, 0.15);
+        --board: #f5e6c8;
+        --board-line: #8b4513;
+        --felt: #167247;
+        --felt-deep: #0d5738;
+        --mint: #a8e6bf;
+        --gold: #d8a84c;
+        --gold-2: #f59e0b;
+        --coral: #e95f46;
+        --radius: 18px;
+        --radius-lg: 28px;
+        --shadow: 0 18px 42px rgba(11, 95, 165, 0.13);
+        --board-shadow: 0 22px 42px rgba(20, 71, 45, 0.2);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          radial-gradient(circle at 14% 8%, rgba(29, 143, 225, 0.2), transparent 28%),
+          radial-gradient(circle at 88% 18%, rgba(216, 168, 76, 0.18), transparent 26%),
+          linear-gradient(180deg, #f8fbff 0%, var(--sky) 48%, #eef7f0 100%);
+        color: var(--ink);
+        font-family: "PingFang SC", "Noto Sans SC", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+      }
+
+      button {
+        font: inherit;
+      }
+
+      .page {
+        width: min(1210px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 30px 0 52px;
+      }
+
+      .hero {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        margin-bottom: 18px;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 13px;
+      }
+
+      .brand-mark {
+        width: 52px;
+        height: 52px;
+        border-radius: 18px;
+        display: grid;
+        place-items: center;
+        background: linear-gradient(145deg, var(--blue), var(--felt));
+        box-shadow: var(--shadow);
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: 34px;
+        line-height: 1;
+        letter-spacing: -0.04em;
+      }
+
+      .brand p {
+        margin-top: 5px;
+        color: var(--muted);
+        font-weight: 800;
+      }
+
+      .chips {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
+      .chip {
+        min-height: 42px;
+        display: inline-flex;
+        align-items: center;
+        padding: 0 14px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.82);
+        color: var(--blue);
+        font-size: 13px;
+        font-weight: 900;
+        box-shadow: 0 10px 22px rgba(11, 95, 165, 0.08);
+      }
+
+      .phones {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 20px;
+      }
+
+      .phone {
+        padding: 14px;
+        min-height: 728px;
+        border-radius: 36px;
+        background: linear-gradient(150deg, rgba(255, 255, 255, 0.6), rgba(13, 87, 56, 0.28)), #183125;
+        box-shadow: 0 24px 52px rgba(18, 59, 91, 0.2);
+      }
+
+      .screen {
+        position: relative;
+        overflow: hidden;
+        min-height: 700px;
+        border-radius: 28px;
+        border: 1px solid rgba(255, 255, 255, 0.82);
+        background:
+          radial-gradient(circle at 50% -4%, rgba(29, 143, 225, 0.18), transparent 34%),
+          linear-gradient(180deg, #fbfdff 0%, #edf4fb 58%, #eef7f0 100%);
+      }
+
+      .screen.game {
+        background:
+          radial-gradient(circle at 50% -8%, rgba(168, 230, 191, 0.28), transparent 34%),
+          linear-gradient(180deg, #123b2b 0%, #0b1c14 100%);
+        color: #f8fff9;
+      }
+
+      .screen::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(circle at 12% 20%, rgba(245, 230, 200, 0.46), transparent 18%),
+          radial-gradient(circle at 88% 24%, rgba(29, 143, 225, 0.12), transparent 18%);
+        pointer-events: none;
+      }
+
+      .screen.game::before {
+        background:
+          linear-gradient(135deg, rgba(255, 255, 255, 0.06), transparent 34%),
+          radial-gradient(circle at 50% 42%, rgba(22, 114, 71, 0.5), transparent 32%);
+      }
+
+      .screen-content {
+        position: relative;
+        z-index: 1;
+        padding: 18px;
+      }
+
+      .status {
+        min-height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 14px;
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .status-icons {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .battery {
+        width: 23px;
+        height: 12px;
+        border: 2px solid currentColor;
+        border-radius: 4px;
+        position: relative;
+      }
+
+      .battery::after {
+        content: "";
+        position: absolute;
+        right: -5px;
+        top: 3px;
+        width: 3px;
+        height: 5px;
+        border-radius: 0 2px 2px 0;
+        background: currentColor;
+      }
+
+      .battery span {
+        display: block;
+        width: 13px;
+        height: 100%;
+        background: currentColor;
+      }
+
+      .hero-card,
+      .mode-card,
+      .panel,
+      .result-card,
+      .stat {
+        border: 1px solid var(--line);
+        background: var(--card);
+        backdrop-filter: blur(12px);
+        box-shadow: var(--shadow);
+      }
+
+      .hero-card {
+        padding: 18px;
+        border-radius: var(--radius-lg);
+        margin-bottom: 12px;
+      }
+
+      .hero-card h2 {
+        font-size: 30px;
+        line-height: 1.08;
+        letter-spacing: -0.05em;
+      }
+
+      .hero-card p,
+      .panel p,
+      .result-card p {
+        margin-top: 6px;
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 800;
+        line-height: 1.45;
+      }
+
+      .mini-board {
+        width: 58px;
+        height: 58px;
+        border-radius: 18px;
+        background:
+          repeating-linear-gradient(0deg, transparent 0 13px, rgba(139, 69, 19, 0.32) 13px 14px),
+          repeating-linear-gradient(90deg, transparent 0 13px, rgba(139, 69, 19, 0.32) 13px 14px),
+          var(--board);
+        position: absolute;
+        right: 18px;
+        top: 72px;
+        box-shadow: 0 12px 24px rgba(139, 69, 19, 0.12);
+        transform: rotate(6deg);
+      }
+
+      .mini-board::after {
+        content: "";
+        position: absolute;
+        left: 24px;
+        top: 24px;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #111827;
+        box-shadow: 14px 0 0 #ffffff, 14px 0 0 1px #cbd5e1;
+      }
+
+      .mode-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .mode-card {
+        min-height: 84px;
+        border-radius: 24px;
+        display: grid;
+        grid-template-columns: 48px 1fr 28px;
+        gap: 12px;
+        align-items: center;
+        padding: 13px;
+        transition: transform 160ms ease, border-color 160ms ease;
+      }
+
+      .mode-card.active {
+        background: linear-gradient(135deg, rgba(168, 230, 191, 0.34), rgba(255, 255, 255, 0.88));
+        border-color: rgba(22, 114, 71, 0.48);
+      }
+
+      .mode-card:active,
+      button:active {
+        transform: scale(0.97);
+      }
+
+      .mode-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 16px;
+        display: grid;
+        place-items: center;
+        color: var(--blue);
+        background: rgba(217, 234, 247, 0.72);
+      }
+
+      .mode-card.active .mode-icon {
+        color: var(--felt);
+        background: rgba(168, 230, 191, 0.34);
+      }
+
+      .mode-card h3 {
+        font-size: 22px;
+        line-height: 1.1;
+        letter-spacing: -0.04em;
+      }
+
+      .mode-card p {
+        margin-top: 5px;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.35;
+        font-weight: 800;
+      }
+
+      .radio {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        border: 7px solid var(--felt);
+        background: #ffffff;
+      }
+
+      .radio.off {
+        border-color: #d4e0d8;
+      }
+
+      .panel {
+        margin-top: 12px;
+        padding: 15px;
+        border-radius: 26px;
+      }
+
+      .panel h3 {
+        font-size: 20px;
+      }
+
+      .row {
+        min-height: 48px;
+        margin-top: 10px;
+        padding: 0 13px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-radius: 16px;
+        background: rgba(237, 244, 251, 0.85);
+        font-weight: 900;
+      }
+
+      .choice-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-top: 10px;
+      }
+
+      .choice {
+        min-height: 54px;
+        border-radius: 18px;
+        border: 1px solid var(--line);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 9px;
+        background: rgba(255, 255, 255, 0.82);
+        font-weight: 900;
+      }
+
+      .choice.active {
+        background: #fff8dc;
+        border-color: rgba(216, 168, 76, 0.72);
+      }
+
+      .dot {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        box-shadow: 0 6px 10px rgba(0, 0, 0, 0.18);
+      }
+
+      .dot.black {
+        background: radial-gradient(circle at 35% 30%, #5a6170, #111827 62%);
+      }
+
+      .dot.white {
+        background: radial-gradient(circle at 35% 30%, #ffffff, #d8dde7 68%);
+        border: 1px solid #cbd5e1;
+      }
+
+      .primary,
+      .secondary,
+      .danger {
+        min-height: 50px;
+        border: 0;
+        border-radius: 18px;
+        cursor: pointer;
+        font-weight: 900;
+        transition: transform 140ms ease, filter 140ms ease;
+      }
+
+      .primary {
+        width: 100%;
+        margin-top: 12px;
+        background: linear-gradient(135deg, var(--blue), var(--felt));
+        color: white;
+        box-shadow: 0 15px 30px rgba(11, 95, 165, 0.22);
+      }
+
+      .secondary {
+        background: rgba(255, 255, 255, 0.1);
+        color: #f8fff9;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+      }
+
+      .danger {
+        background: var(--coral);
+        color: #ffffff;
+      }
+
+      .game-hud {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+
+      .player {
+        min-height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.09);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        font-weight: 900;
+      }
+
+      .player.active {
+        background: rgba(168, 230, 191, 0.17);
+        border-color: rgba(168, 230, 191, 0.42);
+      }
+
+      .timer {
+        min-width: 60px;
+        text-align: center;
+        color: var(--mint);
+        font-size: 22px;
+        font-weight: 900;
+      }
+
+      .board-shell {
+        padding: 11px;
+        border-radius: 22px;
+        background:
+          linear-gradient(135deg, rgba(255, 255, 255, 0.1), transparent 46%),
+          var(--felt);
+        box-shadow: var(--board-shadow);
+      }
+
+      .board {
+        position: relative;
+        aspect-ratio: 1;
+        border-radius: 16px;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 50% 50%, rgba(168, 230, 191, 0.22), transparent 44%),
+          linear-gradient(135deg, #1a8a56, #11663f);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+      }
+
+      .board::before {
+        content: "";
+        position: absolute;
+        inset: 19px;
+        background:
+          repeating-linear-gradient(0deg, transparent 0 calc(100% / 14 - 1px), rgba(248, 255, 249, 0.48) calc(100% / 14 - 1px) calc(100% / 14)),
+          repeating-linear-gradient(90deg, transparent 0 calc(100% / 14 - 1px), rgba(248, 255, 249, 0.48) calc(100% / 14 - 1px) calc(100% / 14));
+        border-right: 1px solid rgba(248, 255, 249, 0.48);
+        border-bottom: 1px solid rgba(248, 255, 249, 0.48);
+      }
+
+      .star {
+        position: absolute;
+        z-index: 1;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: rgba(248, 255, 249, 0.72);
+        transform: translate(-50%, -50%);
+      }
+
+      .s1 { left: 26%; top: 26%; }
+      .s2 { left: 50%; top: 26%; }
+      .s3 { left: 74%; top: 26%; }
+      .s4 { left: 26%; top: 50%; }
+      .s5 { left: 50%; top: 50%; }
+      .s6 { left: 74%; top: 50%; }
+      .s7 { left: 26%; top: 74%; }
+      .s8 { left: 50%; top: 74%; }
+      .s9 { left: 74%; top: 74%; }
+
+      .stone {
+        position: absolute;
+        z-index: 2;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        animation: drop 720ms cubic-bezier(0.22, 1.35, 0.36, 1) both;
+      }
+
+      .stone.black {
+        background: radial-gradient(circle at 35% 30%, #5a6170, #111827 62%);
+        box-shadow: inset 0 7px 10px rgba(255, 255, 255, 0.06), 0 9px 15px rgba(0, 0, 0, 0.3);
+      }
+
+      .stone.white {
+        background: radial-gradient(circle at 35% 30%, #ffffff, #d8dde7 68%);
+        box-shadow: inset 0 -5px 9px rgba(0, 0, 0, 0.07), 0 9px 15px rgba(0, 0, 0, 0.2);
+      }
+
+      .stone.last::after {
+        content: "";
+        position: absolute;
+        inset: -8px;
+        border-radius: 50%;
+        border: 2px solid var(--gold);
+        animation: pulse 1.6s ease-out infinite;
+      }
+
+      .win-line {
+        position: absolute;
+        z-index: 3;
+        left: 25%;
+        top: 50%;
+        width: 52%;
+        height: 6px;
+        border-radius: 6px;
+        background: linear-gradient(90deg, var(--gold), #fff4b8, var(--gold));
+        box-shadow: 0 0 18px rgba(216, 168, 76, 0.62);
+      }
+
+      .game-card {
+        margin-top: 12px;
+        padding: 15px;
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.09);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+      }
+
+      .game-card h2 {
+        font-size: 24px;
+        letter-spacing: -0.04em;
+      }
+
+      .game-card p {
+        margin-top: 5px;
+        color: rgba(248, 255, 249, 0.74);
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      .button-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 9px;
+        margin-top: 12px;
+      }
+
+      .result-art {
+        position: relative;
+        height: 330px;
+        display: grid;
+        place-items: center;
+      }
+
+      .celebration-board {
+        width: 210px;
+        height: 210px;
+        border-radius: 34px;
+        background:
+          repeating-linear-gradient(0deg, transparent 0 29px, rgba(139, 69, 19, 0.24) 29px 30px),
+          repeating-linear-gradient(90deg, transparent 0 29px, rgba(139, 69, 19, 0.24) 29px 30px),
+          var(--board);
+        box-shadow: 0 18px 36px rgba(139, 69, 19, 0.16);
+        transform: rotate(-4deg);
+      }
+
+      .winner {
+        position: absolute;
+        width: 126px;
+        height: 126px;
+        border-radius: 50%;
+        background: radial-gradient(circle at 35% 30%, #5a6170, #111827 62%);
+        box-shadow: inset 0 10px 18px rgba(255, 255, 255, 0.08), 0 22px 30px rgba(17, 24, 39, 0.22);
+        animation: float 3s ease-in-out infinite;
+      }
+
+      .winner::before,
+      .winner::after {
+        content: "";
+        position: absolute;
+        top: 44px;
+        width: 13px;
+        height: 13px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.92);
+      }
+
+      .winner::before { left: 37px; }
+      .winner::after { right: 37px; }
+
+      .smile {
+        position: absolute;
+        left: 50%;
+        top: 73px;
+        width: 42px;
+        height: 21px;
+        border-bottom: 5px solid rgba(255, 255, 255, 0.92);
+        border-radius: 0 0 999px 999px;
+        transform: translateX(-50%);
+      }
+
+      .arc {
+        position: absolute;
+        width: 178px;
+        height: 178px;
+        border-radius: 50%;
+        border: 9px solid transparent;
+        border-left-color: var(--felt);
+        border-right-color: var(--felt);
+        opacity: 0.95;
+      }
+
+      .confetti {
+        position: absolute;
+        width: 10px;
+        height: 16px;
+        border-radius: 4px;
+        animation: confetti 4.8s linear infinite;
+      }
+
+      .c1 { left: 18%; top: -15px; background: var(--blue-2); }
+      .c2 { left: 50%; top: -25px; background: var(--gold); animation-delay: 0.5s; }
+      .c3 { left: 78%; top: -20px; background: var(--coral); animation-delay: 0.95s; }
+
+      .result-card {
+        padding: 16px;
+        border-radius: 26px;
+      }
+
+      .result-card h2 {
+        font-size: 30px;
+        letter-spacing: -0.05em;
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 9px;
+        margin-top: 12px;
+      }
+
+      .stat {
+        min-height: 72px;
+        border-radius: 18px;
+        display: grid;
+        place-items: center;
+        text-align: center;
+      }
+
+      .stat span {
+        color: var(--soft-muted);
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .stat strong {
+        display: block;
+        margin-top: 2px;
+        font-size: 22px;
+      }
+
+      .note {
+        margin-top: 18px;
+        padding: 14px 16px;
+        border-radius: 20px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.76);
+        color: var(--muted);
+        font-weight: 800;
+        line-height: 1.7;
+      }
+
+      @keyframes drop {
+        0% {
+          opacity: 0;
+          transform: translate(-50%, -82%) scale(1.35);
+        }
+        58% {
+          opacity: 1;
+          transform: translate(-50%, -43%) scale(0.9);
+        }
+        78% {
+          transform: translate(-50%, -52%) scale(1.06);
+        }
+        100% {
+          opacity: 1;
+          transform: translate(-50%, -50%) scale(1);
+        }
+      }
+
+      @keyframes pulse {
+        from {
+          opacity: 0.84;
+          transform: scale(0.84);
+        }
+        to {
+          opacity: 0;
+          transform: scale(1.52);
+        }
+      }
+
+      @keyframes float {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-7px); }
+      }
+
+      @keyframes confetti {
+        0% { opacity: 0; transform: translateY(-22px) rotate(0deg); }
+        12% { opacity: 0.9; }
+        100% { opacity: 0; transform: translateY(540px) rotate(360deg); }
+      }
+
+      @media (max-width: 1000px) {
+        .phones {
+          grid-template-columns: 1fr;
+          max-width: 430px;
+          margin: 0 auto;
+        }
+
+        .hero {
+          max-width: 430px;
+          margin: 0 auto 18px;
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .chips {
+          justify-content: flex-start;
+        }
+      }
+
+      @media (max-width: 440px) {
+        .page {
+          width: min(100% - 18px, 430px);
+          padding-top: 18px;
+        }
+
+        h1 {
+          font-size: 30px;
+        }
+
+        .chip {
+          min-height: 40px;
+        }
+
+        .phone {
+          min-height: 690px;
+          padding: 10px;
+          border-radius: 30px;
+        }
+
+        .screen {
+          min-height: 668px;
+          border-radius: 24px;
+        }
+
+        .screen-content {
+          padding: 16px 14px;
+        }
+
+        .hero-card {
+          padding-right: 112px;
+        }
+
+        .mini-board {
+          width: 82px;
+          height: 82px;
+          right: 18px;
+          top: 92px;
+          opacity: 0.82;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+          scroll-behavior: auto !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <section class="hero">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">
+            <svg width="30" height="30" viewBox="0 0 30 30">
+              <rect x="4" y="4" width="22" height="22" rx="6" fill="#fff" />
+              <path d="M10 8v14M15 8v14M20 8v14M8 10h14M8 15h14M8 20h14" stroke="#0b5fa5" stroke-width="1.4" />
+              <circle cx="15" cy="15" r="3.2" fill="#167247" />
+            </svg>
+          </div>
+          <div>
+            <h1>弈境 Gomoku</h1>
+            <p>Soft Party + Soft Strategy 融合版</p>
+          </div>
+        </div>
+        <div class="chips">
+          <span class="chip">蓝白玻璃</span>
+          <span class="chip">绿色棋盘中心</span>
+          <span class="chip">胜负奖励感</span>
+        </div>
+      </section>
+
+      <section class="phones">
+        <article class="phone">
+          <div class="screen">
+            <div class="screen-content">
+              <div class="status">
+                <span>9:41</span>
+                <span class="status-icons">
+                  <svg width="18" height="12" viewBox="0 0 18 12" aria-hidden="true">
+                    <path d="M1 11h2V8H1v3Zm5 0h2V6H6v5Zm5 0h2V4h-2v7Zm5 0h2V1h-2v10Z" fill="currentColor" />
+                  </svg>
+                  <span class="battery"><span></span></span>
+                </span>
+              </div>
+
+              <div class="hero-card">
+                <h2>今天开一局</h2>
+                <p>保留软萌氛围，但把棋局入口做得更直接。</p>
+              </div>
+              <div class="mini-board" aria-hidden="true"></div>
+
+              <div class="mode-list">
+                <div class="mode-card active">
+                  <div class="mode-icon">
+                    <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true">
+                      <circle cx="10" cy="10" r="5" fill="currentColor" opacity=".9" />
+                      <circle cx="18" cy="18" r="5" fill="none" stroke="currentColor" stroke-width="2.2" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3>本地对弈</h3>
+                    <p>两人轮流落子，马上开局。</p>
+                  </div>
+                  <span class="radio"></span>
+                </div>
+                <div class="mode-card">
+                  <div class="mode-icon">
+                    <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true">
+                      <path d="M6 20c2.2-4 5-6.1 8-6.1S19.8 16 22 20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />
+                      <circle cx="14" cy="9" r="4.2" fill="currentColor" opacity=".9" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3>好友房</h3>
+                    <p>创建房间，分享房号给朋友。</p>
+                  </div>
+                  <span class="radio off"></span>
+                </div>
+                <div class="mode-card">
+                  <div class="mode-icon">
+                    <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true">
+                      <rect x="6" y="5" width="16" height="18" rx="4" fill="none" stroke="currentColor" stroke-width="2.2" />
+                      <path d="M10 11h8M10 15h8M10 19h5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3>练习棋谱</h3>
+                    <p>复盘开局、连珠和防守节奏。</p>
+                  </div>
+                  <span class="radio off"></span>
+                </div>
+              </div>
+
+              <div class="panel">
+                <h3>棋局设置</h3>
+                <p>首屏收紧，开始按钮更早可见。</p>
+                <div class="row"><span>棋盘</span><strong>15 × 15</strong></div>
+                <div class="choice-grid">
+                  <div class="choice active"><span class="dot black"></span>执黑</div>
+                  <div class="choice"><span class="dot white"></span>执白</div>
+                </div>
+                <button class="primary">开始对局</button>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="phone">
+          <div class="screen game">
+            <div class="screen-content">
+              <div class="status">
+                <span>9:41</span>
+                <span class="status-icons">
+                  <svg width="18" height="12" viewBox="0 0 18 12" aria-hidden="true">
+                    <path d="M1 11h2V8H1v3Zm5 0h2V6H6v5Zm5 0h2V4h-2v7Zm5 0h2V1h-2v10Z" fill="currentColor" />
+                  </svg>
+                  <span class="battery"><span></span></span>
+                </span>
+              </div>
+
+              <div class="game-hud">
+                <div class="player active"><span class="dot black"></span>黑方</div>
+                <div class="timer">00:27</div>
+                <div class="player"><span class="dot white"></span>白方</div>
+              </div>
+
+              <div class="board-shell">
+                <div class="board" aria-label="五子棋棋盘融合预览">
+                  <span class="star s1"></span><span class="star s2"></span><span class="star s3"></span>
+                  <span class="star s4"></span><span class="star s5"></span><span class="star s6"></span>
+                  <span class="star s7"></span><span class="star s8"></span><span class="star s9"></span>
+                  <span class="stone black" style="left:50%;top:50%"></span>
+                  <span class="stone white" style="left:57%;top:43%;animation-delay:120ms"></span>
+                  <span class="stone black" style="left:43%;top:50%;animation-delay:220ms"></span>
+                  <span class="stone white" style="left:57%;top:50%;animation-delay:320ms"></span>
+                  <span class="stone black" style="left:36%;top:50%;animation-delay:420ms"></span>
+                  <span class="stone white" style="left:64%;top:57%;animation-delay:520ms"></span>
+                  <span class="stone black last" style="left:29%;top:50%;animation-delay:620ms"></span>
+                  <span class="win-line"></span>
+                </div>
+              </div>
+
+              <div class="game-card">
+                <h2>黑方形成四连</h2>
+                <p>对局页切到策略层，棋盘更大，装饰退后。</p>
+                <div class="button-grid">
+                  <button class="secondary">悔棋</button>
+                  <button class="danger">认输</button>
+                </div>
+                <button class="primary">提示一手</button>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="phone">
+          <div class="screen">
+            <div class="screen-content">
+              <div class="status">
+                <span>9:41</span>
+                <span class="status-icons">
+                  <svg width="18" height="12" viewBox="0 0 18 12" aria-hidden="true">
+                    <path d="M1 11h2V8H1v3Zm5 0h2V6H6v5Zm5 0h2V4h-2v7Zm5 0h2V1h-2v10Z" fill="currentColor" />
+                  </svg>
+                  <span class="battery"><span></span></span>
+                </span>
+              </div>
+
+              <div class="result-art">
+                <span class="confetti c1"></span>
+                <span class="confetti c2"></span>
+                <span class="confetti c3"></span>
+                <div class="celebration-board"></div>
+                <div class="arc"></div>
+                <div class="winner"><span class="smile"></span></div>
+              </div>
+
+              <div class="result-card">
+                <h2>漂亮一局</h2>
+                <p>结算保留软萌奖励感，同时加入棋盘片段和胜利数据。</p>
+                <div class="stats">
+                  <div class="stat"><span>总用时</span><strong>01:42</strong></div>
+                  <div class="stat"><span>连胜</span><strong>4</strong></div>
+                  <div class="stat"><span>段位分</span><strong>+18</strong></div>
+                  <div class="stat"><span>评级</span><strong>A+</strong></div>
+                </div>
+                <div class="button-grid">
+                  <button class="primary">再来一局</button>
+                  <button class="secondary" style="background:#fff;color:var(--blue);border-color:var(--line)">回到首页</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section class="note">
+        融合原则：菜单和结算保留 Soft Party 的蓝白、圆润、奖励感；对局页切换到 Soft Strategy 的绿色棋盘中心层，让棋盘成为主角。
+      </section>
+    </main>
+  </body>
+</html>

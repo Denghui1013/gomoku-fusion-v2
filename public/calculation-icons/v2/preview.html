@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>五子棋计算页图标 V2</title>
+    <style>
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: Arial, "Microsoft YaHei", sans-serif;
+        background: linear-gradient(180deg, #f7fbff 0%, #edf4fb 100%);
+        color: #123b5b;
+      }
+      main {
+        width: min(1200px, 100%);
+        margin: 0 auto;
+        padding: 40px 20px;
+      }
+      h1 {
+        margin: 0 0 8px;
+        font-size: 28px;
+        line-height: 1.2;
+      }
+      p {
+        margin: 0 0 28px;
+        color: #536b80;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(180px, 1fr));
+        gap: 18px;
+      }
+      .tile {
+        min-height: 250px;
+        display: grid;
+        place-items: center;
+        border-radius: 26px;
+        background:
+          radial-gradient(circle at 38% 26%, rgba(255,255,255,.95), rgba(255,255,255,.56) 42%, rgba(255,255,255,.28)),
+          linear-gradient(135deg, #e9f2fb, #eff8f1);
+        border: 1px solid rgba(11,95,165,.12);
+      }
+      img {
+        width: min(220px, 92%);
+        height: auto;
+        display: block;
+      }
+      .caption {
+        margin-top: -18px;
+        font-size: 15px;
+        font-weight: 800;
+        text-align: center;
+      }
+      @media (max-width: 880px) {
+        .grid { grid-template-columns: repeat(2, minmax(180px, 1fr)); }
+      }
+      @media (max-width: 480px) {
+        .grid { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>五子棋计算页图标 V2</h1>
+      <p>透明背景图标版，不覆盖原素材。</p>
+      <div class="grid">
+        <section class="tile"><div><img src="./five-in-row.svg" alt="五子连线"><div class="caption">五子连线</div></div></section>
+        <section class="tile"><div><img src="./key-move.svg" alt="关键一手"><div class="caption">关键一手</div></div></section>
+        <section class="tile"><div><img src="./steady-defense.svg" alt="稳胜防守"><div class="caption">稳胜防守</div></div></section>
+        <section class="tile"><div><img src="./rank-up.svg" alt="段位提升"><div class="caption">段位提升</div></div></section>
+      </div>
+    </main>
+  </body>
+</html>

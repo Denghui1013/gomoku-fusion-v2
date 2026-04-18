@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>软萌派对结算素材预览</title>
+    <style>
+      :root {
+        --background: #edf4fb;
+        --primary: #0b5fa5;
+        --primary-2: #1d8fe1;
+        --text-primary: #123b5b;
+        --text-secondary: #3a5064;
+        --text-tertiary: #5d6f81;
+        --board: #f5e6c8;
+        --gold: #d8a84c;
+        --success: #22c55e;
+        --danger: #ef4444;
+        --card: rgba(255, 255, 255, 0.86);
+        --border: rgba(11, 95, 165, 0.14);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          radial-gradient(circle at 50% -20%, rgba(29, 143, 225, 0.2), transparent 42%),
+          var(--background);
+        color: var(--text-primary);
+        font-family: "PingFang SC", "Noto Sans SC", "Microsoft YaHei", system-ui, sans-serif;
+      }
+
+      .page {
+        width: min(1180px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 32px 0 48px;
+      }
+
+      .hero {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 20px;
+        margin-bottom: 24px;
+      }
+
+      .hero h1 {
+        margin: 0;
+        font-size: clamp(28px, 5vw, 48px);
+        letter-spacing: -0.05em;
+      }
+
+      .hero p {
+        margin: 8px 0 0;
+        color: var(--text-secondary);
+        font-weight: 600;
+      }
+
+      .chip {
+        flex: 0 0 auto;
+        padding: 10px 16px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.72);
+        box-shadow: 0 10px 28px rgba(11, 95, 165, 0.1);
+        color: var(--primary);
+        font-weight: 800;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 20px;
+      }
+
+      .mock {
+        position: relative;
+        aspect-ratio: 720 / 1040;
+        overflow: hidden;
+        border-radius: 34px;
+        border: 1px solid rgba(255, 255, 255, 0.8);
+        background: #fff;
+        box-shadow: 0 22px 50px rgba(11, 95, 165, 0.16);
+      }
+
+      .mock.wide {
+        aspect-ratio: 720 / 420;
+      }
+
+      .mock img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .overlay {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 9% 8% 7%;
+        text-align: center;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 34px;
+        padding: 7px 14px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.72);
+        border: 1px solid rgba(255, 255, 255, 0.9);
+        box-shadow: 0 8px 18px rgba(11, 95, 165, 0.08);
+        color: var(--primary);
+        font-size: 13px;
+        font-weight: 900;
+      }
+
+      .title {
+        margin: 22px 0 0;
+        font-size: clamp(28px, 3.8vw, 42px);
+        line-height: 1;
+        letter-spacing: -0.06em;
+        color: var(--text-primary);
+        text-shadow: 0 3px 0 rgba(255, 255, 255, 0.6);
+      }
+
+      .subtitle {
+        margin: 10px 0 0;
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--text-secondary);
+      }
+
+      .spacer {
+        flex: 1;
+      }
+
+      .stats {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+
+      .stat,
+      .reward-text {
+        border-radius: 20px;
+        border: 1px solid rgba(11, 95, 165, 0.1);
+        background: rgba(255, 255, 255, 0.76);
+        box-shadow: 0 10px 24px rgba(11, 95, 165, 0.08);
+        backdrop-filter: blur(8px);
+      }
+
+      .stat {
+        padding: 12px 10px;
+      }
+
+      .stat span {
+        display: block;
+        color: var(--text-tertiary);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .stat strong {
+        display: block;
+        margin-top: 3px;
+        color: var(--text-primary);
+        font-size: 20px;
+        line-height: 1;
+      }
+
+      .buttons {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        width: 100%;
+      }
+
+      .button {
+        height: 46px;
+        border-radius: 16px;
+        display: grid;
+        place-items: center;
+        font-size: 14px;
+        font-weight: 900;
+        box-shadow: 0 12px 22px rgba(11, 95, 165, 0.12);
+      }
+
+      .button.primary {
+        background: var(--primary);
+        color: white;
+      }
+
+      .button.secondary {
+        background: rgba(255, 255, 255, 0.82);
+        color: var(--primary);
+        border: 1px solid rgba(11, 95, 165, 0.12);
+      }
+
+      .tone-victory .badge,
+      .tone-victory .title {
+        color: #0b6b47;
+      }
+
+      .tone-defeat .badge,
+      .tone-defeat .title {
+        color: #8b3a4a;
+      }
+
+      .tone-rank .badge,
+      .tone-rank .title,
+      .tone-master .badge,
+      .tone-master .title {
+        color: #b87900;
+      }
+
+      .tone-rank .button.primary,
+      .tone-master .button.primary {
+        background: linear-gradient(135deg, #d8a84c, #f59e0b);
+      }
+
+      .reward-overlay {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        grid-template-columns: 0.92fr 1fr;
+        gap: 18px;
+        align-items: center;
+        padding: 34px 44px;
+      }
+
+      .reward-text {
+        padding: 22px;
+        text-align: left;
+      }
+
+      .reward-text small {
+        color: var(--primary);
+        font-weight: 900;
+      }
+
+      .reward-text h2 {
+        margin: 7px 0 8px;
+        font-size: 30px;
+        letter-spacing: -0.06em;
+      }
+
+      .reward-text p {
+        margin: 0;
+        color: var(--text-secondary);
+        font-weight: 700;
+      }
+
+      .note {
+        margin-top: 22px;
+        padding: 16px 18px;
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.72);
+        color: var(--text-secondary);
+        font-weight: 700;
+        line-height: 1.7;
+      }
+
+      @media (max-width: 920px) {
+        .grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 640px) {
+        .page {
+          width: min(420px, calc(100% - 24px));
+          padding-top: 20px;
+        }
+
+        .hero {
+          display: block;
+        }
+
+        .chip {
+          display: inline-flex;
+          margin-top: 14px;
+        }
+
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <section class="hero">
+        <div>
+          <h1>软萌派对结算素材预览</h1>
+          <p>独立素材目录预览，不影响当前游戏结算页面。</p>
+        </div>
+        <div class="chip">Yanyan Gomoku Skin Draft</div>
+      </section>
+
+      <section class="grid">
+        <article class="mock tone-victory">
+          <img src="./party-victory-bg.svg" alt="" />
+          <div class="overlay">
+            <div class="badge">🏆 胜利结算</div>
+            <h2 class="title">漂亮一局</h2>
+            <p class="subtitle">黑方五连，获得本局胜利</p>
+            <div class="spacer"></div>
+            <div class="stats">
+              <div class="stat"><span>总步数</span><strong>23</strong></div>
+              <div class="stat"><span>用时</span><strong>01:42</strong></div>
+            </div>
+            <div class="buttons">
+              <div class="button primary">再来一局</div>
+              <div class="button secondary">返回选择</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="mock tone-defeat">
+          <img src="./party-defeat-bg.svg" alt="" />
+          <div class="overlay">
+            <div class="badge">🌧 失败结算</div>
+            <h2 class="title">差一点点</h2>
+            <p class="subtitle">调整布局，下一局赢回来</p>
+            <div class="spacer"></div>
+            <div class="stats">
+              <div class="stat"><span>总步数</span><strong>31</strong></div>
+              <div class="stat"><span>用时</span><strong>02:18</strong></div>
+            </div>
+            <div class="buttons">
+              <div class="button primary">继续挑战</div>
+              <div class="button secondary">返回选择</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="mock">
+          <img src="./party-draw-bg.svg" alt="" />
+          <div class="overlay">
+            <div class="badge">🤝 平局结算</div>
+            <h2 class="title">势均力敌</h2>
+            <p class="subtitle">双方棋力相当，棋盘已满</p>
+            <div class="spacer"></div>
+            <div class="stats">
+              <div class="stat"><span>总步数</span><strong>225</strong></div>
+              <div class="stat"><span>用时</span><strong>08:36</strong></div>
+            </div>
+            <div class="buttons">
+              <div class="button primary">再来一局</div>
+              <div class="button secondary">返回选择</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="mock tone-rank">
+          <img src="./party-rank-up-bg.svg" alt="" />
+          <div class="overlay">
+            <div class="badge">⭐ 段位提升</div>
+            <h2 class="title">升至黄金</h2>
+            <p class="subtitle">恭喜达到新的高度</p>
+            <div class="spacer"></div>
+            <div class="stats">
+              <div class="stat"><span>当前段位</span><strong>黄金</strong></div>
+              <div class="stat"><span>星数</span><strong>★ x0</strong></div>
+            </div>
+            <div class="buttons">
+              <div class="button primary">继续挑战</div>
+              <div class="button secondary">稍后查看</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="mock tone-master">
+          <img src="./party-master-bg.svg" alt="" />
+          <div class="overlay">
+            <div class="badge">👑 大师彩蛋</div>
+            <h2 class="title">大师达成</h2>
+            <p class="subtitle">你已经站上棋盘巅峰</p>
+            <div class="spacer"></div>
+            <div class="stats">
+              <div class="stat"><span>奖励</span><strong>勋章</strong></div>
+              <div class="stat"><span>特效</span><strong>已解锁</strong></div>
+            </div>
+            <div class="buttons">
+              <div class="button primary">领取奖励</div>
+              <div class="button secondary">关闭</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="mock wide">
+          <img src="./party-reward-card.svg" alt="" />
+          <div class="reward-overlay">
+            <div></div>
+            <div class="reward-text">
+              <small>获得奖励</small>
+              <h2>黄金棋盘</h2>
+              <p>专属黄金段位棋盘皮肤</p>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section class="note">
+        这只是素材套皮预览页。实际接入时可以继续让背景无文字，所有中文、按钮、倒计时、星星数量都由 React 渲染，保证 APK 内清晰且适配不同屏幕。
+      </section>
+    </main>
+  </body>
+</html>

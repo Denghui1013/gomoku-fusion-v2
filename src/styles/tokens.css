@@ -1,0 +1,144 @@
+:root {
+  --color-primary: #0B5FA5;
+  --color-primary-hover: #0A74C4;
+  --color-secondary: #1D8FE1;
+  --color-cta: #22C55E;
+  --color-cta-hover: #16A34A;
+  --color-danger: #EF4444;
+  --color-warning: #F59E0B;
+  --color-info: #0EA5E9;
+  --color-success: #16A34A;
+  
+  --color-background: #EDF4FB;
+  --color-foreground: #0E3E63;
+  
+  --color-surface: #ffffff;
+  --color-surface-elevated: #ffffff;
+  --color-border: rgba(11, 95, 165, 0.12);
+  --color-border-strong: rgba(11, 95, 165, 0.24);
+  
+  --color-text-primary: #123B5B;
+  --color-text-secondary: #3A5064;
+  --color-text-tertiary: #5D6F81;
+  --color-text-inverse: #ffffff;
+
+  --color-state-success-bg: color-mix(in srgb, #16a34a 12%, #ffffff);
+  --color-state-success-border: color-mix(in srgb, #16a34a 35%, rgba(11, 95, 165, 0.12));
+  --color-state-success-text: #166534;
+
+  --color-state-warning-bg: color-mix(in srgb, #f59e0b 14%, #ffffff);
+  --color-state-warning-border: color-mix(in srgb, #f59e0b 38%, rgba(11, 95, 165, 0.12));
+  --color-state-warning-text: #92400e;
+
+  --color-state-danger-bg: color-mix(in srgb, #ef4444 12%, #ffffff);
+  --color-state-danger-border: color-mix(in srgb, #ef4444 34%, rgba(11, 95, 165, 0.12));
+  --color-state-danger-text: #b91c1c;
+
+  --color-state-info-bg: color-mix(in srgb, #0ea5e9 12%, #ffffff);
+  --color-state-info-border: color-mix(in srgb, #0ea5e9 35%, rgba(11, 95, 165, 0.12));
+  --color-state-info-text: #0c4a6e;
+  
+  --color-board-bg: #f5e6c8;
+  --color-board-line: #8B4513;
+  --color-board-star: #8B4513;
+  
+  --color-stone-black: #1a1a1a;
+  --color-stone-white: #f5f5f5;
+
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  --spacing-2xl: 3rem;
+
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 1.875rem;
+  --font-size-4xl: 2.25rem;
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
+
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+  --transition-fast: 150ms ease;
+  --transition-normal: 200ms ease;
+  --transition-slow: 300ms ease;
+  --transition-bounce: 500ms cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+  --z-index-dropdown: 50;
+  --z-index-modal: 100;
+  --z-index-toast: 150;
+  --z-index-tooltip: 200;
+
+  --touch-target-min: 44px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-primary: #38BDF8;
+    --color-primary-hover: #7DD3FC;
+    --color-secondary: #0EA5E9;
+    --color-cta: #4ADE80;
+    --color-cta-hover: #22C55E;
+    --color-info: #38BDF8;
+    --color-success: #22C55E;
+    
+    --color-background: #0C1929;
+    --color-foreground: #E0F2FE;
+    
+    --color-surface: #1E293B;
+    --color-surface-elevated: #1E293B;
+    --color-border: rgba(56, 189, 248, 0.15);
+    --color-border-strong: rgba(56, 189, 248, 0.25);
+    
+    --color-text-primary: #E0F2FE;
+    --color-text-secondary: #94A3B8;
+    --color-text-tertiary: #64748B;
+    
+    --color-board-bg: #1E293B;
+    --color-board-line: #475569;
+    --color-board-star: #64748B;
+    
+    --color-stone-black: #2d2d2d;
+    --color-stone-white: #e5e5e5;
+
+    --color-state-success-bg: color-mix(in srgb, #22c55e 20%, #1E293B);
+    --color-state-success-border: color-mix(in srgb, #22c55e 45%, rgba(56, 189, 248, 0.15));
+    --color-state-success-text: #86efac;
+
+    --color-state-warning-bg: color-mix(in srgb, #f59e0b 20%, #1E293B);
+    --color-state-warning-border: color-mix(in srgb, #f59e0b 45%, rgba(56, 189, 248, 0.15));
+    --color-state-warning-text: #fcd34d;
+
+    --color-state-danger-bg: color-mix(in srgb, #ef4444 18%, #1E293B);
+    --color-state-danger-border: color-mix(in srgb, #ef4444 45%, rgba(56, 189, 248, 0.15));
+    --color-state-danger-text: #fca5a5;
+
+    --color-state-info-bg: color-mix(in srgb, #38bdf8 18%, #1E293B);
+    --color-state-info-border: color-mix(in srgb, #38bdf8 45%, rgba(56, 189, 248, 0.15));
+    --color-state-info-text: #bae6fd;
+  }
+}

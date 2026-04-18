@@ -1,0 +1,609 @@
+@import "tailwindcss";
+@import "../styles/tokens.css";
+
+:root {
+  --background: var(--color-background);
+  --foreground: var(--color-foreground);
+  
+  --primary: var(--color-primary);
+  --primary-hover: var(--color-primary-hover);
+  --secondary: var(--color-secondary);
+  --cta: var(--color-cta);
+  --cta-hover: var(--color-cta-hover);
+  
+  --board-bg: var(--color-board-bg);
+  --board-line: var(--color-board-line);
+  --board-star: var(--color-board-star);
+  
+  --card-bg: var(--color-surface);
+  --card-bg-solid: var(--color-surface-elevated);
+  --card-border: var(--color-border);
+  
+  --text-primary: var(--color-text-primary);
+  --text-secondary: var(--color-text-secondary);
+  --text-tertiary: var(--color-text-tertiary);
+
+  --state-success-bg: var(--color-state-success-bg);
+  --state-success-border: var(--color-state-success-border);
+  --state-success-text: var(--color-state-success-text);
+  --state-warning-bg: var(--color-state-warning-bg);
+  --state-warning-border: var(--color-state-warning-border);
+  --state-warning-text: var(--color-state-warning-text);
+  --state-danger-bg: var(--color-state-danger-bg);
+  --state-danger-border: var(--color-state-danger-border);
+  --state-danger-text: var(--color-state-danger-text);
+  --state-info-bg: var(--color-state-info-bg);
+  --state-info-border: var(--color-state-info-border);
+  --state-info-text: var(--color-state-info-text);
+  
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  
+  --transition-fast: 150ms ease;
+  --transition-normal: 200ms ease;
+  --transition-slow: 300ms ease;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-cta: var(--cta);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+.game-board-bg {
+  background: 
+    linear-gradient(135deg, rgba(139, 69, 19, 0.03) 0%, transparent 50%, rgba(139, 69, 19, 0.03) 100%),
+    linear-gradient(45deg, transparent 40%, rgba(139, 69, 19, 0.02) 40%, rgba(139, 69, 19, 0.02) 60%, transparent 60%),
+    var(--board-bg);
+  background-size: 100% 100%, 20px 20px, 100% 100%;
+}
+
+.game-board-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: 
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 2px,
+      rgba(139, 69, 19, 0.02) 2px,
+      rgba(139, 69, 19, 0.02) 4px
+    );
+  pointer-events: none;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: "PingFang SC", "Noto Sans SC", "Microsoft YaHei", var(--font-inter), system-ui, -apple-system, sans-serif;
+  font-feature-settings: "tnum" 1;
+}
+
+.victory-scene {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+}
+
+.victory-glow {
+  opacity: 0.6;
+}
+
+@keyframes victory-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.02);
+    opacity: 1;
+  }
+}
+
+.victory-content {
+  animation: victory-pulse 2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  
+  .victory-content {
+    animation: none;
+  }
+}
+
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+button:focus-visible,
+select:focus-visible,
+[role="button"]:focus-visible,
+[role="listbox"]:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.sr-only:focus,
+.sr-only:active {
+  position: static;
+  width: auto;
+  height: auto;
+  padding: 0;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
+/* 按钮微交互 */
+.btn-interactive {
+  @apply transition-all duration-100 active:scale-95;
+}
+
+.btn-interactive:hover {
+  @apply shadow-md;
+}
+
+/* 卡片悬停效果 */
+.card-hover {
+  @apply transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5;
+}
+
+/* 棋子落下动画增强 */
+@keyframes stoneDropBounce {
+  0% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(0.9);
+  }
+  70% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.stone-drop {
+  animation: stoneDropBounce 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* 胜利连线流光效果 */
+@keyframes winningLineFlow {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 200% 50%;
+  }
+}
+
+.winning-line-glow {
+  background: linear-gradient(
+    90deg,
+    #f59e0b 0%,
+    #fbbf24 25%,
+    #f59e0b 50%,
+    #fbbf24 75%,
+    #f59e0b 100%
+  );
+  background-size: 200% 100%;
+  animation: winningLineFlow 2s linear infinite;
+}
+
+/* 脉冲动画 */
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.8);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+.pulse-indicator::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  border: 2px solid currentColor;
+  animation: pulse-ring 1.5s ease-out infinite;
+}
+
+/* 隐藏 Next.js 开发工具指示器 */
+[data-nextjs-dialog],
+[data-nextjs-toast],
+.nextjs-toast,
+.nextjs-dialog,
+[data-nextjs-dev-tools],
+.nextjs-dev-tools,
+[data-nextjs-dev-tools-button],
+.nextjs-dev-tools-button,
+[data-nextjs-dev-tools-indicator],
+.nextjs-dev-tools-indicator {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* 安全区域适配 - 防止被前置摄像头/刘海遮挡 */
+.pt-safe-top {
+  padding-top: calc(env(safe-area-inset-top, 0px) + 1.8rem);
+  padding-top: calc(constant(safe-area-inset-top, 0px) + 1.8rem);
+}
+
+.sticky-safe-top {
+  top: calc(env(safe-area-inset-top, 0px) + 1.2rem);
+  top: calc(constant(safe-area-inset-top, 0px) + 1.2rem);
+}
+
+.pb-safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-bottom: constant(safe-area-inset-bottom, 0px);
+}
+
+.game-shell {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.game-hud-pill {
+  border-radius: 9999px;
+  border: 1px solid var(--card-border);
+  background: color-mix(in srgb, var(--card-bg) 90%, transparent);
+  color: var(--text-primary);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--primary) 10%, transparent);
+}
+
+.game-panel {
+  border-radius: 18px;
+  border: 1px solid var(--card-border);
+  background: color-mix(in srgb, var(--card-bg) 92%, transparent);
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--primary) 9%, transparent);
+  backdrop-filter: blur(8px);
+}
+
+.game-btn {
+  min-height: 44px;
+  border-radius: 14px;
+  font-weight: 700;
+  transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.game-btn:active {
+  transform: scale(0.98);
+}
+
+.game-btn-primary {
+  background: var(--primary);
+  color: var(--text-inverse);
+}
+
+.game-btn-primary:hover {
+  background: var(--primary-hover);
+}
+
+.game-btn-secondary {
+  background: var(--card-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--card-border);
+}
+
+.game-btn-danger {
+  background: #f97316;
+  color: var(--text-inverse);
+}
+
+.game-btn-danger:hover {
+  background: #ea580c;
+}
+
+.status-chip {
+  border-radius: 9999px;
+  border: 1px solid;
+}
+
+.status-chip-success {
+  background: var(--state-success-bg);
+  border-color: var(--state-success-border);
+  color: var(--state-success-text);
+}
+
+.status-chip-warning {
+  background: var(--state-warning-bg);
+  border-color: var(--state-warning-border);
+  color: var(--state-warning-text);
+}
+
+.status-chip-danger {
+  background: var(--state-danger-bg);
+  border-color: var(--state-danger-border);
+  color: var(--state-danger-text);
+}
+
+.status-banner {
+  border-radius: 12px;
+  border: 1px solid;
+}
+
+.status-banner-success {
+  background: var(--state-success-bg);
+  border-color: var(--state-success-border);
+  color: var(--state-success-text);
+}
+
+.status-banner-warning {
+  background: var(--state-warning-bg);
+  border-color: var(--state-warning-border);
+  color: var(--state-warning-text);
+}
+
+.status-banner-danger {
+  background: var(--state-danger-bg);
+  border-color: var(--state-danger-border);
+  color: var(--state-danger-text);
+}
+
+.status-banner-info {
+  background: var(--state-info-bg);
+  border-color: var(--state-info-border);
+  color: var(--state-info-text);
+}
+
+.rhythm-title-display {
+  font-size: clamp(1.85rem, 3.2vw, 3rem);
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+}
+
+.brand-title {
+  font-size: clamp(1.75rem, 3.1vw, 2.7rem);
+  line-height: 1.08;
+  letter-spacing: -0.018em;
+  font-weight: 900;
+  color: var(--text-primary);
+}
+
+.brand-subtitle {
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.rhythm-title-section {
+  font-size: clamp(1.25rem, 2.1vw, 1.75rem);
+  line-height: 1.18;
+}
+
+.rhythm-stack {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.75rem, 1.2vw, 1rem);
+}
+
+.rhythm-stack-lg {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1rem, 1.8vw, 1.5rem);
+}
+
+.rhythm-page {
+  padding: clamp(0.9rem, 1.6vw, 1.5rem);
+}
+
+.bottom-action-bar {
+  border-top: 1px solid var(--card-border);
+  backdrop-filter: blur(8px);
+}
+
+.input-mobile-safe {
+  font-size: 16px;
+}
+
+@media (max-width: 767px) {
+  .mobile-tight {
+    gap: 0.75rem !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .game-board-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .pt-safe-top {
+    padding-top: calc(env(safe-area-inset-top, 0px) + 2.8rem);
+    padding-top: calc(constant(safe-area-inset-top, 0px) + 2.8rem);
+  }
+
+  .sticky-safe-top {
+    top: calc(env(safe-area-inset-top, 0px) + 1.8rem);
+    top: calc(constant(safe-area-inset-top, 0px) + 1.8rem);
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .bg-white\/80 {
+    background-color: rgba(30, 30, 30, 0.8);
+  }
+  
+  .bg-white\/70 {
+    background-color: rgba(30, 30, 30, 0.7);
+  }
+  
+  .bg-white\/50 {
+    background-color: rgba(30, 30, 30, 0.5);
+  }
+  
+  .bg-white\/90 {
+    background-color: rgba(30, 30, 30, 0.9);
+  }
+  
+  .bg-white {
+    background-color: var(--card-bg-solid);
+  }
+  
+  .bg-amber-100 {
+    background-color: rgba(70, 55, 35, 0.6);
+  }
+  
+  .bg-amber-50 {
+    background-color: rgba(70, 55, 35, 0.3);
+  }
+  
+  .bg-gray-50 {
+    background-color: rgba(40, 40, 40, 0.8);
+  }
+  
+  .bg-gray-100 {
+    background-color: rgba(45, 45, 45, 0.8);
+  }
+  
+  .bg-gray-200 {
+    background-color: rgba(55, 55, 55, 0.8);
+  }
+  
+  .bg-blue-500 {
+    background-color: #2563eb;
+  }
+  
+  .bg-blue-600 {
+    background-color: #1d4ed8;
+  }
+  
+  .text-gray-900 {
+    color: var(--text-primary);
+  }
+  
+  .text-gray-800 {
+    color: var(--text-primary);
+  }
+  
+  .text-gray-700 {
+    color: var(--text-secondary);
+  }
+  
+  .text-gray-600 {
+    color: var(--text-secondary);
+  }
+  
+  .text-gray-500 {
+    color: var(--text-tertiary);
+  }
+  
+  .ring-amber-300 {
+    --tw-ring-color: rgba(217, 119, 6, 0.4);
+  }
+  
+  .ring-white\/50 {
+    --tw-ring-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .ring-white\/40 {
+    --tw-ring-color: rgba(255, 255, 255, 0.08);
+  }
+  
+  .ring-gray-200 {
+    --tw-ring-color: rgba(80, 80, 80, 0.5);
+  }
+  
+  .ring-gray-300 {
+    --tw-ring-color: rgba(100, 100, 100, 0.5);
+  }
+  
+  .border-gray-300 {
+    border-color: rgba(80, 80, 80, 0.5);
+  }
+  
+  select {
+    background-color: rgba(40, 40, 40, 0.9);
+    color: var(--text-primary);
+  }
+  
+  .game-board-bg {
+    background-color: var(--board-bg);
+  }
+  
+  .text-amber-600 {
+    color: #fbbf24;
+  }
+  
+  .text-amber-500 {
+    color: #fcd34d;
+  }
+  
+  .text-gray-500 {
+    color: #525252 !important;
+  }
+  
+  .text-gray-400 {
+    color: #737373 !important;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .game-header {
+    margin-bottom: 0.5rem;
+  }
+  
+  .game-header h1 {
+    font-size: 1.25rem;
+  }
+  
+  .game-header p {
+    display: none;
+  }
+  
+  .landscape-compact .p-4 {
+    padding: 0.5rem;
+  }
+  
+  .landscape-compact .gap-4 {
+    gap: 0.5rem;
+  }
+  
+  .landscape-compact .space-y-3 > :not([hidden]) ~ :not([hidden]) {
+    --tw-space-y-reverse: 0;
+    margin-top: calc(0.5rem * calc(1 - var(--tw-space-y-reverse)));
+    margin-bottom: calc(0.5rem * var(--tw-space-y-reverse));
+  }
+  
+  .landscape-compact .p-6 {
+    padding: 0.75rem;
+  }
+}

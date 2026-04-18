@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>五子棋计算页图标预览</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: Arial, "Microsoft YaHei", sans-serif;
+        background: #edf4fb;
+        color: #123b5b;
+      }
+
+      main {
+        width: min(100%, 1520px);
+        margin: 0 auto;
+        padding: 40px 24px;
+      }
+
+      h1 {
+        margin: 0 0 18px;
+        font-size: 28px;
+        line-height: 1.2;
+      }
+
+      p {
+        margin: 0 0 28px;
+        color: #4d6378;
+        font-size: 15px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(220px, 1fr));
+        gap: 16px;
+      }
+
+      img {
+        width: 100%;
+        height: auto;
+        display: block;
+        border-radius: 20px;
+        box-shadow: 0 18px 38px rgba(18, 59, 91, 0.12);
+      }
+
+      @media (max-width: 960px) {
+        .grid {
+          grid-template-columns: repeat(2, minmax(220px, 1fr));
+        }
+      }
+
+      @media (max-width: 560px) {
+        main {
+          padding: 24px 14px;
+        }
+
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>五子棋计算页图标预览</h1>
+      <p>单独生成的新素材，不覆盖原页面和原资源。</p>
+      <div class="grid">
+        <img src="./five-in-row.svg" alt="五子连线" />
+        <img src="./key-move.svg" alt="关键一手" />
+        <img src="./steady-defense.svg" alt="稳胜防守" />
+        <img src="./rank-up.svg" alt="段位提升" />
+      </div>
+    </main>
+  </body>
+</html>

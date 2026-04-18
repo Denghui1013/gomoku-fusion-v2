@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="220" viewBox="0 0 360 220" role="img" aria-label="稳胜防守图标">
+  <defs>
+    <linearGradient id="card" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f8fbff"/>
+      <stop offset="0.56" stop-color="#eef7f0"/>
+      <stop offset="1" stop-color="#e8f1fb"/>
+    </linearGradient>
+    <linearGradient id="board" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f8ddb0"/>
+      <stop offset="1" stop-color="#e7b867"/>
+    </linearGradient>
+    <radialGradient id="black" cx="35%" cy="28%" r="72%">
+      <stop offset="0" stop-color="#667284"/>
+      <stop offset="0.55" stop-color="#1f2937"/>
+      <stop offset="1" stop-color="#080d14"/>
+    </radialGradient>
+    <radialGradient id="white" cx="35%" cy="28%" r="74%">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.62" stop-color="#f2f6fb"/>
+      <stop offset="1" stop-color="#cbd5e1"/>
+    </radialGradient>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="16" stdDeviation="14" flood-color="#123b5b" flood-opacity="0.16"/>
+    </filter>
+  </defs>
+  <rect width="360" height="220" rx="34" fill="url(#card)"/>
+  <g filter="url(#softShadow)">
+    <rect x="48" y="34" width="264" height="132" rx="26" fill="url(#board)"/>
+    <rect x="64" y="50" width="232" height="100" rx="18" fill="none" stroke="#895820" stroke-opacity="0.28"/>
+    <g stroke="#895820" stroke-opacity="0.25" stroke-width="1">
+      <path d="M82 52v96M106 52v96M130 52v96M154 52v96M178 52v96M202 52v96M226 52v96M250 52v96M274 52v96"/>
+      <path d="M66 66h228M66 86h228M66 106h228M66 126h228M66 146h228"/>
+    </g>
+    <path d="M180 54c26 12 48 12 68 7v44c0 38-25 60-68 76-43-16-68-38-68-76V61c20 5 42 5 68-7z" fill="#0b5fa5" fill-opacity="0.9"/>
+    <path d="M180 65c20 9 37 9 52 5v34c0 29-18 46-52 59-34-13-52-30-52-59V70c15 4 32 4 52-5z" fill="#bde2ff" fill-opacity="0.34"/>
+    <path d="M151 107l20 20 41-48" fill="none" stroke="#ffffff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="94" cy="76" r="14" fill="url(#black)"/>
+    <circle cx="108" cy="130" r="14" fill="url(#white)" stroke="#d6dde8"/>
+    <circle cx="260" cy="130" r="14" fill="url(#black)"/>
+  </g>
+  <g>
+    <rect x="132" y="168" width="96" height="34" rx="17" fill="#ffffff" fill-opacity="0.94"/>
+    <text x="180" y="191" text-anchor="middle" font-family="Arial, 'Microsoft YaHei', sans-serif" font-size="16" font-weight="800" fill="#123b5b">稳胜防守</text>
+  </g>
+</svg>

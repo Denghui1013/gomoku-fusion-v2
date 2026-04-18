@@ -1,0 +1,6 @@
+export { Stone } from './Stone'
+export { GameBoard } from './Board'
+export { GameControls } from './GameControls'
+export { GomokuGame } from './GomokuGame'
+export { default as Cell } from './Cell'
+export { default as Intersection } from './Intersection'
