@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">彦彦的五子棋</string>
+    <string name="title_activity_main">彦彦的五子棋</string>
+    <string name="package_name">com.gomoku.yanyan</string>
+    <string name="custom_url_scheme">com.gomoku.yanyan</string>
+</resources>

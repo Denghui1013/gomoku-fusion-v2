@@ -63,14 +63,43 @@ where npm >nul 2>&1 || (
 )
 
 if not exist "android\gradlew.bat" (
-  echo [ERROR] android\gradlew.bat not found.
-  goto :fail
+  echo [WARN] android\gradlew.bat not found. Trying to initialize Android platform...
+  call cmd.exe /c npx.cmd cap add android || goto :fail
+  if not exist "android\gradlew.bat" (
+    echo [ERROR] Android platform init failed. android\gradlew.bat is still missing.
+    goto :fail
+  )
 )
 
 if not exist "%JAVA_HOME%\bin\java.exe" (
   echo [ERROR] Java runtime not found at: %JAVA_HOME%\bin\java.exe
   goto :fail
 )
+
+echo [Preflight] Checking port 3010 occupancy...
+set "PORT_3010_PID="
+for /f "tokens=5" %%P in ('netstat -ano ^| findstr /R /C:":3010 .*LISTENING"') do (
+  set "PORT_3010_PID=%%P"
+  goto :port3010_found
+)
+goto :port3010_done
+
+:port3010_found
+echo [WARN] Port 3010 is in use by PID %PORT_3010_PID%.
+tasklist /FI "PID eq %PORT_3010_PID%"
+choice /C YN /N /M "Kill this process now? [Y/N]: "
+if errorlevel 2 (
+  echo [ERROR] Build aborted. Please stop the dev server, then rerun.
+  goto :fail
+)
+taskkill /PID %PORT_3010_PID% /F >nul 2>&1 || (
+  echo [ERROR] Failed to stop PID %PORT_3010_PID%. Stop it manually and rerun.
+  goto :fail
+)
+echo [INFO] PID %PORT_3010_PID% stopped.
+
+:port3010_done
+echo.
 
 echo [1/7] Checking Java...
 "%JAVA_HOME%\bin\java.exe" -version || goto :fail
@@ -119,7 +148,6 @@ echo.
 
 echo [5/7] Preparing isolated Gradle/Android user dirs...
 if not exist "%GRADLE_USER_HOME%" mkdir "%GRADLE_USER_HOME%"
-if not exist "%ANDROID_USER_HOME%" mkdir "%ANDROID_USER_HOME%"
 if not exist "%ANDROID_USER_HOME%" mkdir "%ANDROID_USER_HOME%"
 echo.
 
