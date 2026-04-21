@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 set -u
 
-# One-click VPS health check for gomoku deployment.
+# VPS health check for gomoku deployment.
 # Usage:
 #   bash scripts/vps-health-check.sh [pm2_name] [port] [public_base_url]
 # Example:
-#   bash scripts/vps-health-check.sh gomoku 3000 http://YOUR_DOMAIN_OR_IP
+#   bash scripts/vps-health-check.sh gomoku-fusion-v2 3010 https://yanyan-gomoku.duckdns.org
 
-APP_NAME="${1:-gomoku}"
-PORT="${2:-3000}"
+APP_NAME="${1:-gomoku-fusion-v2}"
+PORT="${2:-3010}"
 PUBLIC_BASE="${3:-http://127.0.0.1}"
 
 FAIL=0
@@ -24,6 +24,15 @@ warn() {
 err() {
   echo "[ERR] $1"
   FAIL=1
+}
+
+fetch_code() {
+  # shellcheck disable=SC2039
+  curl -s -o /dev/null -w "%{http_code}" "$1" || true
+}
+
+is_good_code() {
+  [[ "$1" == "200" || "$1" == "304" ]]
 }
 
 echo "========================================"
@@ -56,18 +65,51 @@ else
 fi
 
 if command -v curl >/dev/null 2>&1; then
-  LOCAL_CODE="$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:${PORT}/mode" || true)"
-  if [[ "${LOCAL_CODE}" == "200" ]]; then
-    ok "Local health endpoint /mode returns 200"
+  LOCAL_MODE="http://127.0.0.1:${PORT}/mode"
+  PUBLIC_MODE="${PUBLIC_BASE}/mode"
+
+  LOCAL_CODE="$(fetch_code "${LOCAL_MODE}")"
+  if is_good_code "${LOCAL_CODE}"; then
+    ok "Local /mode returns ${LOCAL_CODE}"
   else
-    err "Local health endpoint /mode returns ${LOCAL_CODE:-N/A}"
+    err "Local /mode returns ${LOCAL_CODE:-N/A}"
   fi
 
-  PUBLIC_CODE="$(curl -s -o /dev/null -w "%{http_code}" "${PUBLIC_BASE}/mode" || true)"
-  if [[ "${PUBLIC_CODE}" == "200" ]]; then
-    ok "Public health endpoint ${PUBLIC_BASE}/mode returns 200"
+  PUBLIC_CODE="$(fetch_code "${PUBLIC_MODE}")"
+  if is_good_code "${PUBLIC_CODE}"; then
+    ok "Public /mode returns ${PUBLIC_CODE}"
   else
-    warn "Public endpoint ${PUBLIC_BASE}/mode returns ${PUBLIC_CODE:-N/A}"
+    err "Public /mode returns ${PUBLIC_CODE:-N/A}"
+  fi
+
+  # Check chunk assets to catch "_next/static/chunks/*.js 500" early.
+  MODE_HTML="$(curl -s "${LOCAL_MODE}" || true)"
+  CHUNKS="$(printf "%s" "${MODE_HTML}" | grep -oE '/_next/static/[^"]+' | sort -u | head -n 8)"
+
+  if [[ -z "${CHUNKS}" ]]; then
+    warn "No chunk paths parsed from local /mode HTML"
+  else
+    ok "Parsed chunk paths from local /mode HTML"
+    while IFS= read -r CHUNK_PATH; do
+      [[ -z "${CHUNK_PATH}" ]] && continue
+
+      LOCAL_CHUNK_URL="http://127.0.0.1:${PORT}${CHUNK_PATH}"
+      PUBLIC_CHUNK_URL="${PUBLIC_BASE}${CHUNK_PATH}"
+
+      LOCAL_CHUNK_CODE="$(fetch_code "${LOCAL_CHUNK_URL}")"
+      if is_good_code "${LOCAL_CHUNK_CODE}"; then
+        ok "Local chunk ${CHUNK_PATH} -> ${LOCAL_CHUNK_CODE}"
+      else
+        err "Local chunk ${CHUNK_PATH} -> ${LOCAL_CHUNK_CODE:-N/A}"
+      fi
+
+      PUBLIC_CHUNK_CODE="$(fetch_code "${PUBLIC_CHUNK_URL}")"
+      if is_good_code "${PUBLIC_CHUNK_CODE}"; then
+        ok "Public chunk ${CHUNK_PATH} -> ${PUBLIC_CHUNK_CODE}"
+      else
+        err "Public chunk ${CHUNK_PATH} -> ${PUBLIC_CHUNK_CODE:-N/A}"
+      fi
+    done <<< "${CHUNKS}"
   fi
 else
   err "curl not found"
@@ -100,7 +142,6 @@ if [[ "${FAIL}" -eq 0 ]]; then
   exit 0
 else
   echo "RESULT: FAIL"
-  echo "Tip: check 'pm2 logs ${APP_NAME} --lines 100' and nginx error logs."
+  echo "Tip: check 'pm2 logs ${APP_NAME} --lines 120' and nginx error logs."
   exit 1
 fi
-

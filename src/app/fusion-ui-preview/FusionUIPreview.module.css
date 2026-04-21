@@ -499,6 +499,52 @@
   margin-bottom: 12px;
 }
 
+.noticePopup {
+  margin: 2px 0 8px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(11, 95, 165, 0.34);
+  border-left: 5px solid #0b5fa5;
+  background: rgba(255, 255, 255, 0.99);
+  color: #0b3555;
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1.4;
+  box-shadow: 0 12px 24px rgba(10, 42, 68, 0.2);
+}
+
+.noticeInline {
+  margin-top: 10px;
+  padding: 12px 14px 12px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(11, 95, 165, 0.28);
+  border-left: 5px solid #0b5fa5;
+  background: rgba(221, 238, 252, 0.9);
+  color: #0f3f64;
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1.4;
+  box-shadow: 0 8px 18px rgba(10, 42, 68, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.noticeInlineLabel {
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0;
+  opacity: 0.88;
+}
+
+.noticeInlineWarn {
+  border-color: rgba(239, 68, 68, 0.4);
+  border-left-color: #dc2626;
+  background: rgba(254, 226, 226, 0.98);
+  color: #7f1d1d;
+  box-shadow: 0 10px 20px rgba(127, 29, 29, 0.14);
+}
+
 .player {
   min-height: 48px;
   display: flex;
@@ -506,23 +552,43 @@
   justify-content: center;
   gap: 8px;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.09);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(11, 95, 165, 0.14);
+  color: #123b5b;
   font-weight: 900;
 }
 
 .playerActive {
-  background: rgba(168, 230, 191, 0.17);
-  border-color: rgba(168, 230, 191, 0.42);
+  background: rgba(168, 230, 191, 0.44);
+  border-color: rgba(22, 114, 71, 0.52);
+  box-shadow: 0 8px 18px rgba(22, 114, 71, 0.18);
+  color: #0f5d39;
 }
 
 .timer {
-  min-width: 60px;
-  text-align: center;
-  color: #a8e6bf;
-  font-size: 22px;
+  min-width: 72px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: #1a9c65;
+  font-size: 23px;
   font-weight: 900;
   font-variant-numeric: tabular-nums;
+  line-height: 1;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+
+.timer svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  transform: translateY(0.5px);
+}
+
+.timer span {
+  display: inline-block;
+  line-height: 1;
 }
 
 .boardShell {
@@ -2187,8 +2253,8 @@
   }
 
   .timer {
-    min-width: 56px;
-    font-size: 20px;
+    min-width: 66px;
+    font-size: 21px;
   }
 
   .friendPlayers div {
@@ -2228,8 +2294,8 @@
   }
 
   .timer {
-    min-width: 52px;
-    font-size: 19px;
+    min-width: 62px;
+    font-size: 20px;
   }
 
   .roomMetaGrid {
