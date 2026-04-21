@@ -69,6 +69,7 @@ interface DeclineState {
   declinerId?: string
   declinerName?: string
   requesterId?: string
+  requesterName?: string
   timestamp: number
 }
 
@@ -496,23 +497,34 @@ export function useMultiplayer() {
       const urName = payload.pendingUndoRequesterName || null
       const isRequesterMe = rrId ? rrId === myId : rrName !== null && rrName === myName
       const isUndoRequesterMe = urId ? urId === myId : urName !== null && urName === myName
-      const opponentName = roleRef.current === 'host' ? payload.guestName || null : roleRef.current === 'guest' ? payload.hostName || null : stateRef.current.opponentName
+      const opponentName =
+        roleRef.current === 'host'
+          ? payload.guestName || null
+          : roleRef.current === 'guest'
+            ? payload.hostName || null
+            : stateRef.current.opponentName
 
-      setState((prev) => ({
-        ...prev,
-        isInRoom: true,
-        isGameStarted: payload.gameStarted,
-        roomCode: payload.roomCode || prev.roomCode,
-        myColor: myColor || prev.myColor,
-        opponentName: opponentName && opponentName !== myName ? opponentName : prev.opponentName,
-        moveNumber: payload.moveCount,
-        currentPlayer: payload.currentPlayer,
-        gameStartTime: payload.gameStarted ? prev.gameStartTime || Date.now() : null,
-        waitingRestartAccept: rrName ? isRequesterMe : false,
-        pendingRestartRequestFrom: rrName && !isRequesterMe ? rrName : null,
-        waitingUndoAccept: urName ? isUndoRequesterMe : false,
-        pendingUndoRequestFrom: urName && !isUndoRequesterMe ? urName : null,
-      }))
+      setState((prev) => {
+        const resolvedOpponentName = opponentName && opponentName !== myName ? opponentName : null
+        const opponentLeftNow = Boolean(prev.opponentName) && !resolvedOpponentName
+
+        return {
+          ...prev,
+          isInRoom: true,
+          isGameStarted: opponentLeftNow ? false : payload.gameStarted,
+          roomCode: payload.roomCode || prev.roomCode,
+          myColor: myColor || prev.myColor,
+          opponentName: resolvedOpponentName,
+          moveNumber: payload.moveCount,
+          currentPlayer: payload.currentPlayer,
+          gameStartTime: opponentLeftNow ? null : payload.gameStarted ? prev.gameStartTime || Date.now() : null,
+          connectionError: opponentLeftNow ? `${prev.opponentName} 离开了房间` : resolvedOpponentName ? null : prev.connectionError,
+          waitingRestartAccept: opponentLeftNow ? false : rrName ? isRequesterMe : false,
+          pendingRestartRequestFrom: opponentLeftNow ? null : rrName && !isRequesterMe ? rrName : null,
+          waitingUndoAccept: opponentLeftNow ? false : urName ? isUndoRequesterMe : false,
+          pendingUndoRequestFrom: opponentLeftNow ? null : urName && !isUndoRequesterMe ? urName : null,
+        }
+      })
     })
 
     const unregisterGameSync = network.onMessage<{ moves: SyncedMove[] }>('game_sync', ({ payload }) => {
@@ -567,16 +579,26 @@ export function useMultiplayer() {
 
         if (!res.ok) {
           if (res.status === 404) {
+            // Room has been removed on server side. Clear local network room context
+            // to stop follow-up polling against a stale roomId.
+            manualDisconnectRef.current = true
+            network.disconnect()
             setState((prev) => ({
               ...prev,
               isConnected: false,
-              isInRoom: false,
+              isInRoom: true,
               isGameStarted: false,
               gameEndReason: null,
               roomCode: null,
               opponentName: null,
               moveNumber: 0,
-              connectionError: '房间已不存在，请重新创建或加入。',
+              waitingRestartAccept: false,
+              pendingRestartRequestFrom: null,
+              waitingUndoAccept: false,
+              pendingUndoRequestFrom: null,
+              connectionError: prev.opponentName
+                ? '对手已离开房间，请重新创建房间或加入其他房间。'
+                : '房间已不存在，请重新创建或加入。',
             }))
           }
           return
@@ -597,9 +619,23 @@ export function useMultiplayer() {
         const openingCancel = data.lastOpeningCancel || null
         const isRequesterMe = rrId ? rrId === myId : rrName !== null && rrName === myName
         const isUndoRequesterMe = urId ? urId === myId : urName !== null && urName === myName
-        const opponentName = roleRef.current === 'host' ? data.guestName || null : roleRef.current === 'guest' ? data.hostName || null : stateRef.current.opponentName
+        const opponentName =
+          roleRef.current === 'host'
+            ? data.guestName || null
+            : roleRef.current === 'guest'
+              ? data.hostName || null
+              : stateRef.current.opponentName
 
-        const declineTargetsMe = Boolean(rrDecline?.timestamp) && (rrDecline?.requesterId ? rrDecline.requesterId === myId : rrDecline?.declinerId !== myId)
+        const declineTargetsMe =
+          Boolean(rrDecline?.timestamp) &&
+          (
+            stateRef.current.waitingRestartAccept ||
+            (rrDecline?.requesterId
+              ? rrDecline.requesterId === myId
+              : rrDecline?.requesterName
+                ? rrDecline.requesterName === myName
+                : rrDecline?.declinerId !== myId)
+          )
         const isNewDecline = Boolean(rrDecline?.timestamp) && declineTargetsMe && rrDecline!.timestamp !== lastRestartDeclineTimestampRef.current
         if (isNewDecline && rrDecline?.timestamp) {
           lastRestartDeclineTimestampRef.current = rrDecline.timestamp
@@ -623,24 +659,29 @@ export function useMultiplayer() {
           showRestartNotice(`${actorName}取消了本局，棋盘已重置，可直接重新开始。`)
         }
 
-        setState((prev) => ({
-          ...prev,
-          isConnected: true,
-          isInRoom: true,
-          roomCode: data.roomCode || prev.roomCode,
-          isGameStarted: Boolean(data.gameStarted || prev.isGameStarted),
-          myColor: roleRef.current === 'host' ? 'black' : roleRef.current === 'guest' ? 'white' : prev.myColor,
-          opponentName: opponentName && opponentName !== myName ? opponentName : prev.opponentName,
-          moveNumber: Number(data.moveCount || data.moves?.length || moveCountRef.current),
-          currentPlayer: data.currentPlayer || prev.currentPlayer,
-          gameEndReason: hasNewOpeningCancel ? null : prev.gameEndReason,
-          connectionError: null,
-          waitingRestartAccept: declineTargetsMe ? false : rrName ? isRequesterMe : false,
-          pendingRestartRequestFrom: rrName && !isRequesterMe ? rrName : null,
-          waitingUndoAccept: undoDeclineTargetsMe ? false : urName ? isUndoRequesterMe : false,
-          pendingUndoRequestFrom: urName && !isUndoRequesterMe ? urName : null,
-          chatMessages: Array.isArray(data.chatMessages) ? data.chatMessages : prev.chatMessages,
-        }))
+        setState((prev) => {
+          const resolvedOpponentName = opponentName && opponentName !== myName ? opponentName : null
+          const opponentLeftNow = Boolean(prev.opponentName) && !resolvedOpponentName
+
+          return {
+            ...prev,
+            isConnected: true,
+            isInRoom: true,
+            roomCode: data.roomCode || prev.roomCode,
+            isGameStarted: opponentLeftNow ? false : Boolean(data.gameStarted || prev.isGameStarted),
+            myColor: roleRef.current === 'host' ? 'black' : roleRef.current === 'guest' ? 'white' : prev.myColor,
+            opponentName: resolvedOpponentName,
+            moveNumber: Number(data.moveCount || data.moves?.length || moveCountRef.current),
+            currentPlayer: data.currentPlayer || prev.currentPlayer,
+            gameEndReason: opponentLeftNow || hasNewOpeningCancel ? null : prev.gameEndReason,
+            connectionError: opponentLeftNow ? `${prev.opponentName} 离开了房间` : resolvedOpponentName ? null : prev.connectionError,
+            waitingRestartAccept: opponentLeftNow ? false : declineTargetsMe ? false : rrName ? isRequesterMe : false,
+            pendingRestartRequestFrom: opponentLeftNow ? null : rrName && !isRequesterMe ? rrName : null,
+            waitingUndoAccept: opponentLeftNow ? false : undoDeclineTargetsMe ? false : urName ? isUndoRequesterMe : false,
+            pendingUndoRequestFrom: opponentLeftNow ? null : urName && !isUndoRequesterMe ? urName : null,
+            chatMessages: Array.isArray(data.chatMessages) ? data.chatMessages : prev.chatMessages,
+          }
+        })
 
         if (data.lastGameEnd) applyGameEndFromState(data.lastGameEnd)
         else lastGameEndSignatureRef.current = null
