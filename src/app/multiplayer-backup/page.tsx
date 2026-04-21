@@ -5,7 +5,7 @@ import LobbyScreen from '@/components/multiplayer/LobbyScreen'
 import MultiplayerGame from '@/components/multiplayer/MultiplayerGame'
 import { useMultiplayer } from '@/hooks/useMultiplayer'
 
-export default function MultiplayerPage() {
+export default function MultiplayerBackupPage() {
   const [showGame, setShowGame] = useState(false)
   const multiplayer = useMultiplayer()
 

@@ -18,15 +18,16 @@ type GameFlowActions = {
 
 const GameFlowContext = createContext<(GameFlowState & GameFlowActions) | null>(null)
 const FLOW_STORAGE_KEY = 'gomoku_fusion_game_flow'
+const DEFAULT_FLOW: GameFlowState = { mode: 'pvc', difficulty: 'easy', playerSide: null }
 
 function readSavedFlow(): GameFlowState {
   if (typeof window === 'undefined') {
-    return { mode: 'pvc', difficulty: 'easy', playerSide: null }
+    return DEFAULT_FLOW
   }
 
   try {
     const saved = window.sessionStorage.getItem(FLOW_STORAGE_KEY)
-    if (!saved) return { mode: 'pvc', difficulty: 'easy', playerSide: null }
+    if (!saved) return DEFAULT_FLOW
     const parsed = JSON.parse(saved) as Partial<GameFlowState>
     return {
       mode: parsed.mode ?? 'pvc',
@@ -34,18 +35,25 @@ function readSavedFlow(): GameFlowState {
       playerSide: parsed.playerSide ?? null,
     }
   } catch {
-    return { mode: 'pvc', difficulty: 'easy', playerSide: null }
+    return DEFAULT_FLOW
   }
 }
 
 export function GameFlowProvider({ children }: { children: React.ReactNode }) {
-  const [flow, setFlow] = useState<GameFlowState>(readSavedFlow)
+  const [flow, setFlow] = useState<GameFlowState>(DEFAULT_FLOW)
+  const [hasHydrated, setHasHydrated] = useState(false)
 
   const { mode, difficulty, playerSide } = flow
 
   useEffect(() => {
+    setFlow(readSavedFlow())
+    setHasHydrated(true)
+  }, [])
+
+  useEffect(() => {
+    if (!hasHydrated) return
     window.sessionStorage.setItem(FLOW_STORAGE_KEY, JSON.stringify(flow))
-  }, [flow])
+  }, [flow, hasHydrated])
 
   const setMode = useCallback((next: GameMode | null) => {
     setFlow((prev) => ({ ...prev, mode: next, playerSide: null }))
@@ -60,7 +68,7 @@ export function GameFlowProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const resetSelection = useCallback(() => {
-    setFlow({ mode: 'pvc', difficulty: 'easy', playerSide: null })
+    setFlow(DEFAULT_FLOW)
   }, [])
 
   const value = useMemo(

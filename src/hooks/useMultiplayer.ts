@@ -101,6 +101,9 @@ interface RoomStateResponse {
 
 const BOARD_SIZE = 15
 const WIN_LENGTH = 5
+const ROOM_STATE_POLL_MS_IDLE = 1200
+const ROOM_STATE_POLL_MS_PLAYING = 700
+const ROOM_STATE_POLL_MS_INTERACTIVE = 450
 
 const initialState: MultiplayerState = {
   isConnected: false,
@@ -261,7 +264,7 @@ export function useMultiplayer() {
     restartNoticeTimerRef.current = setTimeout(() => {
       setState((prev) => ({ ...prev, restartNotice: null }))
       restartNoticeTimerRef.current = null
-    }, 4000)
+    }, 10000)
   }, [])
 
   const clearHint = useCallback(
@@ -313,6 +316,7 @@ export function useMultiplayer() {
         ...prev,
         moveNumber: orderedMoves.length,
         currentPlayer: orderedMoves.length % 2 === 0 ? 'black' : 'white',
+        gameEndReason: null,
         ...clearHint(),
       }))
       return
@@ -333,6 +337,7 @@ export function useMultiplayer() {
         ...prev,
         moveNumber: latest,
         currentPlayer: latestPlayer === 'black' ? 'white' : 'black',
+        gameEndReason: null,
         ...clearHint(),
       }))
     }
@@ -384,6 +389,7 @@ export function useMultiplayer() {
         ...prev,
         moveNumber: moveCountRef.current,
         currentPlayer: payload.player === 'black' ? 'white' : 'black',
+        gameEndReason: null,
         ...clearHint(),
       }))
     })
@@ -400,6 +406,7 @@ export function useMultiplayer() {
           isGameStarted: true,
           myColor,
           opponentName: payload.opponentName || prev.opponentName,
+          gameEndReason: null,
           connectionError: null,
         }))
         return
@@ -419,7 +426,7 @@ export function useMultiplayer() {
     const unregisterPlayerLeft = network.onMessage<PlayerLeftPayload>('player_left', ({ payload }) => {
       setState((prev) => ({
         ...prev,
-        connectionError: `${payload.playerName} 离开了房间`,
+        connectionError: `${payload.playerName} 已离开房间，请重新创建房间或加入其他房间。`,
         isInRoom: true,
         isGameStarted: false,
         gameEndReason: null,
@@ -518,7 +525,11 @@ export function useMultiplayer() {
           moveNumber: payload.moveCount,
           currentPlayer: payload.currentPlayer,
           gameStartTime: opponentLeftNow ? null : payload.gameStarted ? prev.gameStartTime || Date.now() : null,
-          connectionError: opponentLeftNow ? `${prev.opponentName} 离开了房间` : resolvedOpponentName ? null : prev.connectionError,
+          connectionError: opponentLeftNow
+            ? `${prev.opponentName} 已离开房间，请重新创建房间或加入其他房间。`
+            : resolvedOpponentName
+              ? null
+              : prev.connectionError,
           waitingRestartAccept: opponentLeftNow ? false : rrName ? isRequesterMe : false,
           pendingRestartRequestFrom: opponentLeftNow ? null : rrName && !isRequesterMe ? rrName : null,
           waitingUndoAccept: opponentLeftNow ? false : urName ? isUndoRequesterMe : false,
@@ -557,9 +568,12 @@ export function useMultiplayer() {
     if (!state.isInRoom || !roomId) return
 
     let cancelled = false
+    let timer: NodeJS.Timeout | null = null
 
     const applyGameEndFromState = (gameEnd: GameEndPayload) => {
-      const signature = `${gameEnd.winner}:${gameEnd.reason}:${gameEnd.moveCount}:${gameEnd.duration}`
+      const withTimestamp = gameEnd as GameEndPayload & { timestamp?: number }
+      const endTimestamp = typeof withTimestamp.timestamp === 'number' ? withTimestamp.timestamp : 0
+      const signature = `${gameEnd.winner}:${gameEnd.reason}:${gameEnd.moveCount}:${gameEnd.duration}:${endTimestamp}`
       if (lastGameEndSignatureRef.current === signature) return
       lastGameEndSignatureRef.current = signature
       gomokuRef.current.finishGame(gameEnd.winner, gameEnd.reason)
@@ -572,15 +586,26 @@ export function useMultiplayer() {
 
     const poll = async () => {
       try {
+        const liveRoomId = network.getRoomId()
+        if (!liveRoomId) {
+          cancelled = true
+          if (timer) clearInterval(timer)
+          return
+        }
         const base = getConfiguredMultiplayerServerUrl()
         const t0 = Date.now()
-        const res = await fetch(`${base}/api/network/room-state?roomId=${encodeURIComponent(roomId)}`)
+        const res = await fetch(
+          `${base}/api/network/room-state?roomId=${encodeURIComponent(liveRoomId)}&t=${Date.now()}`,
+          { cache: 'no-store' }
+        )
         if (cancelled) return
 
         if (!res.ok) {
           if (res.status === 404) {
             // Room has been removed on server side. Clear local network room context
             // to stop follow-up polling against a stale roomId.
+            cancelled = true
+            if (timer) clearInterval(timer)
             manualDisconnectRef.current = true
             network.disconnect()
             setState((prev) => ({
@@ -674,12 +699,21 @@ export function useMultiplayer() {
             moveNumber: Number(data.moveCount || data.moves?.length || moveCountRef.current),
             currentPlayer: data.currentPlayer || prev.currentPlayer,
             gameEndReason: opponentLeftNow || hasNewOpeningCancel ? null : prev.gameEndReason,
-            connectionError: opponentLeftNow ? `${prev.opponentName} 离开了房间` : resolvedOpponentName ? null : prev.connectionError,
+            connectionError: opponentLeftNow
+              ? `${prev.opponentName} 已离开房间，请重新创建房间或加入其他房间。`
+              : resolvedOpponentName
+                ? null
+                : prev.connectionError,
             waitingRestartAccept: opponentLeftNow ? false : declineTargetsMe ? false : rrName ? isRequesterMe : false,
             pendingRestartRequestFrom: opponentLeftNow ? null : rrName && !isRequesterMe ? rrName : null,
             waitingUndoAccept: opponentLeftNow ? false : undoDeclineTargetsMe ? false : urName ? isUndoRequesterMe : false,
             pendingUndoRequestFrom: opponentLeftNow ? null : urName && !isUndoRequesterMe ? urName : null,
             chatMessages: Array.isArray(data.chatMessages) ? data.chatMessages : prev.chatMessages,
+            restartNotice: opponentLeftNow
+              ? prev.restartNotice
+              : rrName && !isRequesterMe
+                ? null
+                : prev.restartNotice,
           }
         })
 
@@ -703,13 +737,35 @@ export function useMultiplayer() {
     }
     }
 
+    const pollIntervalMs =
+      state.waitingRestartAccept ||
+      Boolean(state.pendingRestartRequestFrom) ||
+      state.waitingUndoAccept ||
+      Boolean(state.pendingUndoRequestFrom)
+        ? ROOM_STATE_POLL_MS_INTERACTIVE
+        : state.isGameStarted
+          ? ROOM_STATE_POLL_MS_PLAYING
+          : ROOM_STATE_POLL_MS_IDLE
+
+    timer = setInterval(poll, pollIntervalMs)
     poll()
-    const timer = setInterval(poll, 700)
     return () => {
       cancelled = true
-      clearInterval(timer)
+      if (timer) clearInterval(timer)
     }
-  }, [forceStartFromRoomState, getMyColorByRole, network, showRestartNotice, state.isInRoom, syncMovesFromServer])
+  }, [
+    forceStartFromRoomState,
+    getMyColorByRole,
+    network,
+    showRestartNotice,
+    state.isInRoom,
+    state.isGameStarted,
+    state.pendingRestartRequestFrom,
+    state.pendingUndoRequestFrom,
+    state.waitingRestartAccept,
+    state.waitingUndoAccept,
+    syncMovesFromServer,
+  ])
 
   const createRoom = useCallback(async (playerName: string): Promise<RoomInfo> => {
     manualDisconnectRef.current = false
@@ -788,6 +844,7 @@ export function useMultiplayer() {
       ...prev,
       moveNumber: moveCountRef.current,
       currentPlayer: player === 'black' ? 'white' : 'black',
+      gameEndReason: null,
       ...clearHint(),
     }))
   }, [clearHint, network])

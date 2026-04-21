@@ -1,114 +1,47 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
-import { QRCodeSVG } from 'qrcode.react'
+import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { DoorOpen, PlusCircle, Wifi } from 'lucide-react'
 import type { useMultiplayer } from '@/hooks/useMultiplayer'
-import { useSoundContext } from '@/context/SoundContext'
-import { ArrowLeft, Check, Copy, Gamepad2, Loader2, RadioTower, Users, Wifi, WifiOff } from 'lucide-react'
-import { getConfiguredMultiplayerServerUrl, getMultiplayerShareOrigin } from '@/lib/multiplayerConfig'
+import fusion from '@/app/fusion-ui-preview/FusionUIPreview.module.css'
 
 type LobbyMode = 'menu' | 'create' | 'join' | 'waiting'
-const LOBBY_MODE_STORAGE_KEY = 'gomoku:lobby-mode'
 
 interface LobbyScreenProps {
   multiplayer: ReturnType<typeof useMultiplayer>
   onGameStart?: () => void
-  onBack?: () => void
 }
 
-export default function LobbyScreen({ multiplayer, onGameStart, onBack }: LobbyScreenProps) {
+function DotQR() {
+  return (
+    <div className={fusion.qrMock} aria-hidden="true">
+      {Array.from({ length: 25 }).map((_, index) => (
+        <span key={index} className={index % 4 === 0 || index % 7 === 0 ? fusion.qrDotActive : ''} />
+      ))}
+    </div>
+  )
+}
+
+export default function LobbyScreen({ multiplayer, onGameStart }: LobbyScreenProps) {
   const router = useRouter()
-  const { playBack, playConfirm, playDangerConfirm, playSuccess, playWarning } = useSoundContext()
-  // 总是从 menu 模式开始，不自动检测旧状态
   const [mode, setMode] = useState<LobbyMode>('menu')
   const [playerName, setPlayerName] = useState('')
   const [roomCodeInput, setRoomCodeInput] = useState('')
-  const [copied, setCopied] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const [pollGuestJoined, setPollGuestJoined] = useState(false)
-  const [lastRoomHint, setLastRoomHint] = useState<{ hostName?: string; guestName?: string }>({})
-  const [origin, setOrigin] = useState('')
-  const switchedToGameRef = useRef(false)
-  const previousErrorRef = useRef<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
 
-  const network = multiplayer.network
-  const roomCode = multiplayer.roomCode
-  const forceStartFromRoomState = multiplayer.forceStartFromRoomState
-  const focusRing =
-    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300/80 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]'
-  const inputFocusRing =
-    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]'
-
-  useEffect(() => {
-    setOrigin(getMultiplayerShareOrigin())
-  }, [])
-
-  useEffect(() => {
-    if (mode !== 'waiting' || switchedToGameRef.current) return
-    if (multiplayer.isGameStarted || !!multiplayer.opponentName) {
-      switchedToGameRef.current = true
-      onGameStart?.()
-    }
-  }, [mode, multiplayer.isGameStarted, multiplayer.opponentName, onGameStart])
-
-  useEffect(() => {
-    if (mode !== 'waiting' || switchedToGameRef.current) return
-
-    const roomId = network.getRoomId()
-    if (!roomId && !roomCode) return
-
-    let cancelled = false
-    const timer = setInterval(async () => {
-      if (cancelled || switchedToGameRef.current) return
-      try {
-        const query = roomId
-          ? `roomId=${encodeURIComponent(roomId)}`
-          : `roomCode=${encodeURIComponent(roomCode || '')}`
-        const serverUrl = getConfiguredMultiplayerServerUrl()
-        const response = await fetch(`${serverUrl}/api/network/room-state?${query}`)
-        if (!response.ok) return
-        const data = await response.json()
-        const joined = Boolean(data?.guestJoined || data?.gameStarted)
-        setPollGuestJoined(joined)
-
-        if (data?.success && joined) {
-          setLastRoomHint({ hostName: data?.hostName, guestName: data?.guestName })
-          forceStartFromRoomState({ hostName: data?.hostName, guestName: data?.guestName })
-          switchedToGameRef.current = true
-          onGameStart?.()
-        }
-      } catch {
-        // ignore
-      }
-    }, 1200)
-
-    return () => {
-      cancelled = true
-      clearInterval(timer)
-    }
-  }, [forceStartFromRoomState, mode, network, onGameStart, roomCode])
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    window.sessionStorage.setItem(LOBBY_MODE_STORAGE_KEY, mode)
-  }, [mode])
-
-  useEffect(() => {
-    const activeRoomId = network.getRoomId()
-    const activeRoomCode = network.getRoomCode()
-    const hasActiveRoomContext =
-      multiplayer.isInRoom || !!multiplayer.roomCode || !!activeRoomId || !!activeRoomCode
-    if (mode === 'waiting' && !hasActiveRoomContext) setMode('menu')
-  }, [mode, multiplayer.isInRoom, multiplayer.roomCode, network])
-
-  useEffect(() => {
-    if (multiplayer.connectionError && multiplayer.connectionError !== previousErrorRef.current) {
-      playWarning()
-    }
-    previousErrorRef.current = multiplayer.connectionError
-  }, [multiplayer.connectionError, playWarning])
+  const hasRoom = useMemo(
+    () => multiplayer.isInRoom || !!multiplayer.roomCode || !!multiplayer.network.getRoomCode(),
+    [multiplayer.isInRoom, multiplayer.roomCode, multiplayer.network]
+  )
+  const effectiveMode: LobbyMode = hasRoom ? 'waiting' : mode
+  const roomCode = multiplayer.roomCode || multiplayer.network.getRoomCode() || ''
+  const canEnterGame = multiplayer.isGameStarted || !!multiplayer.opponentName
+  const latency = multiplayer.network.getStats().latency
+  const myName = multiplayer.network.getPlayerName() || '你'
+  const opponentName = multiplayer.opponentName || '等待加入'
 
   const handleCreateRoom = async () => {
     if (!playerName.trim()) {
@@ -118,9 +51,6 @@ export default function LobbyScreen({ multiplayer, onGameStart, onBack }: LobbyS
     setError(null)
     setLoading(true)
     try {
-      playConfirm()
-      switchedToGameRef.current = false
-      setPollGuestJoined(false)
       await multiplayer.createRoom(playerName.trim())
       setMode('waiting')
     } catch (err) {
@@ -136,15 +66,12 @@ export default function LobbyScreen({ multiplayer, onGameStart, onBack }: LobbyS
       return
     }
     if (!roomCodeInput.trim()) {
-      setError('请输入房间码')
+      setError('请输入房间号')
       return
     }
     setError(null)
     setLoading(true)
     try {
-      playConfirm()
-      switchedToGameRef.current = false
-      setPollGuestJoined(false)
       await multiplayer.joinRoom(roomCodeInput.trim(), playerName.trim())
       setMode('waiting')
     } catch (err) {
@@ -154,296 +81,166 @@ export default function LobbyScreen({ multiplayer, onGameStart, onBack }: LobbyS
     }
   }
 
-  const copyRoomCode = () => {
-    if (!multiplayer.roomCode) return
-    navigator.clipboard.writeText(multiplayer.roomCode)
-    playSuccess()
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1200)
+  const copyRoomCode = async () => {
+    if (!roomCode) return
+    try {
+      await navigator.clipboard.writeText(roomCode)
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 1200)
+    } catch {
+      // ignore
+    }
   }
 
-  const renderMenu = () => (
-    <div className="space-y-5 mobile-tight">
-      <div className="text-center">
-        <div className="w-16 h-16 mx-auto mb-3 rounded-2xl flex items-center justify-center game-panel">
-          <Wifi className="w-8 h-8" style={{ color: 'var(--primary)' }} />
-        </div>
-        <h2 className="text-3xl font-black" style={{ color: 'var(--text-primary)' }}>
-          联机对战
-        </h2>
-        <p className="mt-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
-          创建或加入房间，与好友实时对弈
-        </p>
-      </div>
-
-      <div className="space-y-3">
-        <button
-          onClick={() => {
-            setError(null)
-            setMode('create')
-          }}
-          className={`game-btn game-btn-primary w-full py-3.5 flex items-center justify-center gap-2 ${focusRing}`}
-        >
-          <Users className="w-5 h-5" />
-          创建房间
-        </button>
-        <button
-          onClick={() => {
-            setError(null)
-            setMode('join')
-          }}
-          className={`game-btn game-btn-secondary w-full py-3.5 flex items-center justify-center gap-2 ${focusRing}`}
-        >
-          <Gamepad2 className="w-5 h-5" />
-          加入房间
-        </button>
-      </div>
-    </div>
-  )
-
-  const renderCreateRoom = () => (
-    <div className="space-y-5 mobile-tight">
-      <button onClick={() => {
-        playBack()
-        setMode('menu')
-      }} className={`game-hud-pill inline-flex items-center gap-2 px-3 py-2 ${focusRing}`}>
-        <ArrowLeft className="w-4 h-4" />
-        返回
-      </button>
-
-      <div className="text-center">
-        <div className="w-16 h-16 mx-auto mb-3 rounded-2xl flex items-center justify-center game-panel">
-          <Users className="w-8 h-8" style={{ color: 'var(--primary)' }} />
-        </div>
-        <h2 className="text-3xl font-black" style={{ color: 'var(--text-primary)' }}>
-          创建房间
-        </h2>
-        <p className="mt-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
-          输入昵称后直接开房，房间码会自动生成并可分享给好友
-        </p>
-      </div>
-
-      <div className="space-y-3">
-        <label htmlFor="create-player-name" className="sr-only">昵称</label>
-        <input
-          id="create-player-name"
-          type="text"
-          value={playerName}
-          onChange={(e) => setPlayerName(e.target.value)}
-          placeholder="输入昵称"
-          maxLength={20}
-          className={`w-full px-4 py-3 rounded-xl border input-mobile-safe ${inputFocusRing}`}
-          style={{ background: 'var(--background)', borderColor: 'var(--card-border)', color: 'var(--text-primary)' }}
-        />
-
-        {error && <div className="status-banner status-banner-danger p-3 text-sm">{error}</div>}
-
-        <button
-          onClick={handleCreateRoom}
-          disabled={loading || !playerName.trim()}
-          className={`game-btn game-btn-primary w-full py-3.5 disabled:opacity-50 flex items-center justify-center gap-2 ${focusRing}`}
-        >
-          {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Users className="w-5 h-5" />}
-          {loading ? '创建中...' : '创建房间'}
-        </button>
-      </div>
-    </div>
-  )
-
-  const renderJoinRoom = () => (
-    <div className="space-y-5 mobile-tight">
-      <button onClick={() => {
-        playBack()
-        setMode('menu')
-      }} className={`game-hud-pill inline-flex items-center gap-2 px-3 py-2 ${focusRing}`}>
-        <ArrowLeft className="w-4 h-4" />
-        返回
-      </button>
-
-      <div className="text-center">
-        <div className="w-16 h-16 mx-auto mb-3 rounded-2xl flex items-center justify-center game-panel">
-          <Gamepad2 className="w-8 h-8" style={{ color: 'var(--primary)' }} />
-        </div>
-        <h2 className="text-3xl font-black" style={{ color: 'var(--text-primary)' }}>
-          加入房间
-        </h2>
-        <p className="mt-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
-          输入昵称和好友发来的房间码，就可以直接进入实时对局
-        </p>
-      </div>
-
-      <div className="space-y-3">
-        <label htmlFor="join-player-name" className="sr-only">昵称</label>
-        <input
-          id="join-player-name"
-          type="text"
-          value={playerName}
-          onChange={(e) => setPlayerName(e.target.value)}
-          placeholder="输入昵称"
-          maxLength={20}
-          className={`w-full px-4 py-3 rounded-xl border input-mobile-safe ${inputFocusRing}`}
-          style={{ background: 'var(--background)', borderColor: 'var(--card-border)', color: 'var(--text-primary)' }}
-        />
-
-        <label htmlFor="join-room-code" className="sr-only">房间码</label>
-        <input
-          id="join-room-code"
-          type="text"
-          value={roomCodeInput}
-          onChange={(e) => setRoomCodeInput(e.target.value.toUpperCase())}
-          placeholder="输入 6 位房间码"
-          maxLength={6}
-          className={`w-full px-4 py-3 rounded-xl border text-center text-2xl tracking-widest font-mono uppercase input-mobile-safe ${inputFocusRing}`}
-          style={{ background: 'var(--background)', borderColor: 'var(--card-border)', color: 'var(--text-primary)' }}
-        />
-
-        {error && <div className="status-banner status-banner-danger p-3 text-sm">{error}</div>}
-
-        <button
-          onClick={handleJoinRoom}
-          disabled={loading || !playerName.trim() || !roomCodeInput.trim()}
-          className={`game-btn game-btn-primary w-full py-3.5 disabled:opacity-50 flex items-center justify-center gap-2 ${focusRing}`}
-        >
-          {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Gamepad2 className="w-5 h-5" />}
-          {loading ? '加入中...' : '加入房间'}
-        </button>
-      </div>
-    </div>
-  )
-
-  const renderWaitingRoom = () => (
-    <div className="space-y-5 mobile-tight">
-      <div className="text-center">
-        <div className="inline-flex items-center gap-2 game-hud-pill px-3 py-1.5 text-sm mb-3">
-          {multiplayer.isConnected ? (
-            <>
-              <Wifi className="w-4 h-4" style={{ color: 'var(--state-success-text)' }} />
-              <span style={{ color: 'var(--state-success-text)' }}>已连接</span>
-            </>
-          ) : (
-            <>
-              <WifiOff className="w-4 h-4" style={{ color: 'var(--state-warning-text)' }} />
-              <span style={{ color: 'var(--state-warning-text)' }}>等待重连</span>
-            </>
-          )}
-        </div>
-        <h2 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
-          {multiplayer.opponentName ? '对手已就绪' : '等待对手加入...'}
-        </h2>
-        {multiplayer.connectionError && (
-          <p className="mt-2 text-sm" style={{ color: 'var(--state-warning-text)' }}>
-            {multiplayer.connectionError}
-          </p>
-        )}
-      </div>
-
-      {multiplayer.roomCode && (
-        <div className="game-panel p-4 space-y-4">
-          <div className="text-center">
-            <p className="text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>房间码</p>
-            <div className="inline-flex items-center gap-3 game-hud-pill px-5 py-2">
-              <span className="text-3xl font-mono font-bold tracking-widest" style={{ color: 'var(--text-primary)' }}>
-                {multiplayer.roomCode}
-              </span>
-              <button onClick={copyRoomCode} className={`p-2 rounded-lg border ${focusRing}`} style={{ borderColor: 'var(--card-border)' }}>
-                {copied ? (
-                  <Check className="w-5 h-5" style={{ color: 'var(--state-success-text)' }} />
-                ) : (
-                  <Copy className="w-5 h-5" style={{ color: 'var(--text-secondary)' }} />
-                )}
-              </button>
-            </div>
-          </div>
-
-          {origin && (
-            <div className="flex justify-center">
-              <QRCodeSVG
-                value={`${origin}?room=${multiplayer.roomCode}`}
-                size={180}
-                level="M"
-                bgColor="#ffffff"
-                fgColor="#000000"
-                includeMargin
-                className="rounded-xl p-2 bg-white border"
-              />
-            </div>
-          )}
-        </div>
-      )}
-
-      {(pollGuestJoined || multiplayer.isGameStarted || !!multiplayer.opponentName) && (
-        <button
-          onClick={() => {
-            forceStartFromRoomState(lastRoomHint)
-            switchedToGameRef.current = true
-            onGameStart?.()
-          }}
-          className={`game-btn game-btn-primary w-full py-3.5 ${focusRing}`}
-        >
-          对手已加入，进入对局
-        </button>
-      )}
-
-      <button
-        onClick={() => {
-          playDangerConfirm()
-          multiplayer.disconnect()
-          setPollGuestJoined(false)
-          switchedToGameRef.current = false
-          setMode('menu')
-          onBack?.()
-        }}
-        className={`game-btn game-btn-secondary w-full py-3.5 ${focusRing}`}
-      >
-        离开房间
-      </button>
-    </div>
-  )
-
-  const isMenu = mode === 'menu'
+  const leaveRoom = () => {
+    multiplayer.disconnect()
+    setMode('menu')
+    setError(null)
+  }
 
   return (
-    <div className="min-h-dvh rhythm-page pt-safe-top pb-safe-bottom" style={{ background: 'var(--background)' }}>
-      <div className="game-shell max-w-2xl pt-6 sm:pt-4 md:pt-0">
-        <header className="mb-5 sm:mb-5">
-          <div className="flex items-center justify-between gap-3">
-            <button
-              onClick={() => {
-                playBack()
-                onBack?.()
-                router.push('/mode')
-              }}
-              className={`game-hud-pill inline-flex items-center gap-2 px-3 py-2 ${focusRing}`}
-            >
-              <ArrowLeft className="w-4 h-4" />
-              返回主菜单
+    <main className={`${fusion.page} pt-safe-top pb-safe-bottom`}>
+      <div style={{ maxWidth: 430, margin: '0 auto', padding: '0 12px 20px' }}>
+        <div className={fusion.content}>
+          <section style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+            <h1 style={{ margin: 0, fontSize: 32, lineHeight: 1.05, display: 'inline-flex', gap: 8, alignItems: 'center' }}>
+              <Wifi size={22} />
+              好友房
+            </h1>
+            <button className={fusion.chip} type="button" onClick={() => router.push('/mode')}>
+              返回
             </button>
-            <div
-              className="game-hud-pill inline-flex items-center gap-2 px-3 py-1.5"
-              style={{ color: 'var(--text-primary)' }}
-              aria-label="联机大厅"
-            >
-              <RadioTower className="w-4 h-4" style={{ color: 'var(--primary)' }} />
-              <span className="text-xs font-bold tracking-wide">联机大厅</span>
-            </div>
-          </div>
-        </header>
+          </section>
 
-        <div className={`${isMenu ? 'min-h-[58dvh] sm:min-h-0 flex flex-col justify-start sm:justify-center pt-[9vh] sm:pt-0' : ''}`}>
-          <div className="game-panel p-4 sm:p-5 md:p-7">
-            {mode === 'menu' && renderMenu()}
-            {mode === 'create' && renderCreateRoom()}
-            {mode === 'join' && renderJoinRoom()}
-            {mode === 'waiting' && renderWaitingRoom()}
-          </div>
+          {effectiveMode === 'menu' && (
+            <>
+              <section className={fusion.roomHero}>
+                <div>
+                  <span className={fusion.roomState}>好友房等待中</span>
+                  <h2>创建或加入</h2>
+                  <p>实时同步落子，支持复制房号邀请好友。</p>
+                </div>
+                <DotQR />
+              </section>
 
-          {isMenu && (
-            <p className="mt-3 text-center text-xs sm:text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
-              建议先创建房间，再将房间码分享给好友
-            </p>
+              <section className={fusion.modeList} style={{ marginTop: 10 }}>
+                <button className={`${fusion.modeCard} ${fusion.modeCardActive}`} type="button" onClick={() => setMode('create')}>
+                  <div className={fusion.modeIcon}><PlusCircle size={20} /></div>
+                  <div>
+                    <h3>创建房间</h3>
+                    <p>生成房间号并邀请好友加入</p>
+                  </div>
+                  <span className={fusion.radio} aria-hidden="true" />
+                </button>
+                <button className={fusion.modeCard} type="button" onClick={() => setMode('join')}>
+                  <div className={fusion.modeIcon}><DoorOpen size={20} /></div>
+                  <div>
+                    <h3>加入房间</h3>
+                    <p>输入房间号后直接进入准备状态</p>
+                  </div>
+                  <span className={`${fusion.radio} ${fusion.radioOff}`} aria-hidden="true" />
+                </button>
+              </section>
+            </>
+          )}
+
+          {(effectiveMode === 'create' || effectiveMode === 'join') && (
+            <section className={fusion.panel}>
+              <h3>{effectiveMode === 'create' ? '创建房间' : '加入房间'}</h3>
+              <div style={{ display: 'grid', gap: 10, marginTop: 10 }}>
+                <input
+                  type="text"
+                  value={playerName}
+                  onChange={(event) => setPlayerName(event.target.value)}
+                  placeholder="请输入昵称"
+                  maxLength={20}
+                  style={{ width: '100%', height: 48, borderRadius: 12, border: '1px solid rgba(11,95,165,0.16)', padding: '0 12px', fontWeight: 700 }}
+                />
+                {effectiveMode === 'join' && (
+                  <input
+                    type="text"
+                    value={roomCodeInput}
+                    onChange={(event) => setRoomCodeInput(event.target.value.toUpperCase())}
+                    placeholder="输入房间号"
+                    maxLength={6}
+                    style={{ width: '100%', height: 48, borderRadius: 12, border: '1px solid rgba(11,95,165,0.16)', padding: '0 12px', fontWeight: 800, letterSpacing: '0.08em' }}
+                  />
+                )}
+              </div>
+
+              {error && <div className="status-banner status-banner-danger px-3 py-2 text-sm" style={{ marginTop: 10 }}>{error}</div>}
+
+              <div className={fusion.buttonGrid}>
+                <button className={fusion.buttonPrimary} type="button" disabled={loading} onClick={effectiveMode === 'create' ? handleCreateRoom : handleJoinRoom}>
+                  {loading ? '处理中...' : effectiveMode === 'create' ? '创建房间' : '加入房间'}
+                </button>
+                <button className={`${fusion.buttonSecondary} ${fusion.buttonLight}`} type="button" onClick={() => setMode('menu')}>
+                  返回
+                </button>
+              </div>
+            </section>
+          )}
+
+          {effectiveMode === 'waiting' && (
+            <>
+              {multiplayer.connectionError && (
+                <div className={`${fusion.noticeInline} ${fusion.noticeInlineWarn}`}>
+                  <span className={fusion.noticeInlineLabel}>连接提醒</span>
+                  <span>{multiplayer.connectionError}</span>
+                </div>
+              )}
+              <section className={fusion.roomHero}>
+                <div>
+                  <span className={fusion.roomState}>好友房等待中</span>
+                  <h2>房间 {roomCode || '------'}</h2>
+                  <p>复制房号发送好友，进入后直接同步落子。</p>
+                </div>
+                <DotQR />
+              </section>
+
+              <div className={fusion.roomActions}>
+                <button type="button" onClick={copyRoomCode}>
+                  {copied ? '已复制房号' : '复制房号'}
+                </button>
+                <button type="button" onClick={leaveRoom}>
+                  离开房间
+                </button>
+              </div>
+
+              <section className={fusion.friendBoard}>
+                <div className={fusion.friendBoardTop}>
+                  <span>连接{multiplayer.isConnected ? '稳定' : '中断'}</span>
+                  <strong className="tabular-nums">{latency}ms</strong>
+                </div>
+                <div className={fusion.friendPlayers}>
+                  <div className={fusion.friendPlayerActive}>{myName}</div>
+                  <div>{opponentName}</div>
+                </div>
+                <div className={fusion.roomMetaGrid}>
+                  <div className={fusion.roomMetaItem}>
+                    <span>对局模式</span>
+                    <strong>好友房</strong>
+                  </div>
+                  <div className={fusion.roomMetaItem}>
+                    <span>当前执子</span>
+                    <strong>你先手</strong>
+                  </div>
+                </div>
+              </section>
+
+              <button
+                className={fusion.buttonPrimary}
+                type="button"
+                style={{ marginTop: 10, opacity: canEnterGame ? 1 : 0.65 }}
+                disabled={!canEnterGame}
+                onClick={() => onGameStart?.()}
+              >
+                {canEnterGame ? '进入对局' : '等待对手加入'}
+              </button>
+            </>
           )}
         </div>
       </div>
-    </div>
+    </main>
   )
 }
