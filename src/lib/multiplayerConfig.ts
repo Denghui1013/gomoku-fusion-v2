@@ -5,19 +5,16 @@ function trimTrailingSlash(value: string): string {
 }
 
 export function getConfiguredMultiplayerServerUrl(): string {
-  if (typeof window !== 'undefined') {
-    if (/^https?:/i.test(window.location.origin)) {
-      return trimTrailingSlash(window.location.origin)
-    }
-  }
-
   const configured = process.env.NEXT_PUBLIC_MULTIPLAYER_SERVER_URL?.trim()
   if (configured) {
     return trimTrailingSlash(configured)
   }
 
   if (typeof window !== 'undefined' && /^https?:/i.test(window.location.origin)) {
-    return trimTrailingSlash(window.location.origin)
+    const { hostname } = window.location
+    if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+      return trimTrailingSlash(window.location.origin)
+    }
   }
 
   return DEFAULT_LOCAL_SERVER_URL

@@ -20,16 +20,8 @@ interface LobbyScreenProps {
 export default function LobbyScreen({ multiplayer, onGameStart, onBack }: LobbyScreenProps) {
   const router = useRouter()
   const { playBack, playConfirm, playDangerConfirm, playSuccess, playWarning } = useSoundContext()
-  const [mode, setMode] = useState<LobbyMode>(() => {
-    const hasActiveRoomContext =
-      !!multiplayer.network.getRoomId() ||
-      !!multiplayer.network.getRoomCode() ||
-      multiplayer.isInRoom ||
-      !!multiplayer.roomCode
-    if (!hasActiveRoomContext) return 'menu'
-    if (typeof window === 'undefined') return 'waiting'
-    return window.sessionStorage.getItem(LOBBY_MODE_STORAGE_KEY) === 'waiting' ? 'waiting' : 'waiting'
-  })
+  // 总是从 menu 模式开始，不自动检测旧状态
+  const [mode, setMode] = useState<LobbyMode>('menu')
   const [playerName, setPlayerName] = useState('')
   const [roomCodeInput, setRoomCodeInput] = useState('')
   const [copied, setCopied] = useState(false)
@@ -102,18 +94,6 @@ export default function LobbyScreen({ multiplayer, onGameStart, onBack }: LobbyS
     if (typeof window === 'undefined') return
     window.sessionStorage.setItem(LOBBY_MODE_STORAGE_KEY, mode)
   }, [mode])
-
-  useEffect(() => {
-    const activeRoomId = network.getRoomId()
-    const activeRoomCode = network.getRoomCode()
-    const hasActiveWaitingRoom =
-      mode === 'menu' &&
-      (multiplayer.isInRoom || !!activeRoomId || !!activeRoomCode) &&
-      (multiplayer.roomCode || activeRoomCode) &&
-      !multiplayer.isGameStarted
-
-    if (hasActiveWaitingRoom) setMode('waiting')
-  }, [mode, multiplayer.isGameStarted, multiplayer.isInRoom, multiplayer.roomCode, network])
 
   useEffect(() => {
     const activeRoomId = network.getRoomId()
@@ -231,32 +211,42 @@ export default function LobbyScreen({ multiplayer, onGameStart, onBack }: LobbyS
         返回
       </button>
 
-      <h2 className="text-2xl font-bold text-center" style={{ color: 'var(--text-primary)' }}>
-        创建房间
-      </h2>
+      <div className="text-center">
+        <div className="w-16 h-16 mx-auto mb-3 rounded-2xl flex items-center justify-center game-panel">
+          <Users className="w-8 h-8" style={{ color: 'var(--primary)' }} />
+        </div>
+        <h2 className="text-3xl font-black" style={{ color: 'var(--text-primary)' }}>
+          创建房间
+        </h2>
+        <p className="mt-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
+          输入昵称后直接开房，房间码会自动生成并可分享给好友
+        </p>
+      </div>
 
-      <label htmlFor="create-player-name" className="sr-only">昵称</label>
-      <input
-        id="create-player-name"
-        type="text"
-        value={playerName}
-        onChange={(e) => setPlayerName(e.target.value)}
-        placeholder="输入昵称"
-        maxLength={20}
-        className={`w-full px-4 py-3 rounded-xl border input-mobile-safe ${inputFocusRing}`}
-        style={{ background: 'var(--background)', borderColor: 'var(--card-border)', color: 'var(--text-primary)' }}
-      />
+      <div className="space-y-3">
+        <label htmlFor="create-player-name" className="sr-only">昵称</label>
+        <input
+          id="create-player-name"
+          type="text"
+          value={playerName}
+          onChange={(e) => setPlayerName(e.target.value)}
+          placeholder="输入昵称"
+          maxLength={20}
+          className={`w-full px-4 py-3 rounded-xl border input-mobile-safe ${inputFocusRing}`}
+          style={{ background: 'var(--background)', borderColor: 'var(--card-border)', color: 'var(--text-primary)' }}
+        />
 
-      {error && <div className="status-banner status-banner-danger p-3 text-sm">{error}</div>}
+        {error && <div className="status-banner status-banner-danger p-3 text-sm">{error}</div>}
 
-      <button
-        onClick={handleCreateRoom}
-        disabled={loading || !playerName.trim()}
-        className={`game-btn game-btn-primary w-full py-3.5 disabled:opacity-50 flex items-center justify-center gap-2 ${focusRing}`}
-      >
-        {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Users className="w-5 h-5" />}
-        {loading ? '创建中...' : '创建房间'}
-      </button>
+        <button
+          onClick={handleCreateRoom}
+          disabled={loading || !playerName.trim()}
+          className={`game-btn game-btn-primary w-full py-3.5 disabled:opacity-50 flex items-center justify-center gap-2 ${focusRing}`}
+        >
+          {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Users className="w-5 h-5" />}
+          {loading ? '创建中...' : '创建房间'}
+        </button>
+      </div>
     </div>
   )
 
@@ -270,44 +260,54 @@ export default function LobbyScreen({ multiplayer, onGameStart, onBack }: LobbyS
         返回
       </button>
 
-      <h2 className="text-2xl font-bold text-center" style={{ color: 'var(--text-primary)' }}>
-        加入房间
-      </h2>
+      <div className="text-center">
+        <div className="w-16 h-16 mx-auto mb-3 rounded-2xl flex items-center justify-center game-panel">
+          <Gamepad2 className="w-8 h-8" style={{ color: 'var(--primary)' }} />
+        </div>
+        <h2 className="text-3xl font-black" style={{ color: 'var(--text-primary)' }}>
+          加入房间
+        </h2>
+        <p className="mt-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
+          输入昵称和好友发来的房间码，就可以直接进入实时对局
+        </p>
+      </div>
 
-      <label htmlFor="join-player-name" className="sr-only">昵称</label>
-      <input
-        id="join-player-name"
-        type="text"
-        value={playerName}
-        onChange={(e) => setPlayerName(e.target.value)}
-        placeholder="输入昵称"
-        maxLength={20}
-        className={`w-full px-4 py-3 rounded-xl border input-mobile-safe ${inputFocusRing}`}
-        style={{ background: 'var(--background)', borderColor: 'var(--card-border)', color: 'var(--text-primary)' }}
-      />
+      <div className="space-y-3">
+        <label htmlFor="join-player-name" className="sr-only">昵称</label>
+        <input
+          id="join-player-name"
+          type="text"
+          value={playerName}
+          onChange={(e) => setPlayerName(e.target.value)}
+          placeholder="输入昵称"
+          maxLength={20}
+          className={`w-full px-4 py-3 rounded-xl border input-mobile-safe ${inputFocusRing}`}
+          style={{ background: 'var(--background)', borderColor: 'var(--card-border)', color: 'var(--text-primary)' }}
+        />
 
-      <label htmlFor="join-room-code" className="sr-only">房间码</label>
-      <input
-        id="join-room-code"
-        type="text"
-        value={roomCodeInput}
-        onChange={(e) => setRoomCodeInput(e.target.value.toUpperCase())}
-        placeholder="输入 6 位房间码"
-        maxLength={6}
-        className={`w-full px-4 py-3 rounded-xl border text-center text-2xl tracking-widest font-mono uppercase input-mobile-safe ${inputFocusRing}`}
-        style={{ background: 'var(--background)', borderColor: 'var(--card-border)', color: 'var(--text-primary)' }}
-      />
+        <label htmlFor="join-room-code" className="sr-only">房间码</label>
+        <input
+          id="join-room-code"
+          type="text"
+          value={roomCodeInput}
+          onChange={(e) => setRoomCodeInput(e.target.value.toUpperCase())}
+          placeholder="输入 6 位房间码"
+          maxLength={6}
+          className={`w-full px-4 py-3 rounded-xl border text-center text-2xl tracking-widest font-mono uppercase input-mobile-safe ${inputFocusRing}`}
+          style={{ background: 'var(--background)', borderColor: 'var(--card-border)', color: 'var(--text-primary)' }}
+        />
 
-      {error && <div className="status-banner status-banner-danger p-3 text-sm">{error}</div>}
+        {error && <div className="status-banner status-banner-danger p-3 text-sm">{error}</div>}
 
-      <button
-        onClick={handleJoinRoom}
-        disabled={loading || !playerName.trim() || !roomCodeInput.trim()}
-        className={`game-btn game-btn-primary w-full py-3.5 disabled:opacity-50 flex items-center justify-center gap-2 ${focusRing}`}
-      >
-        {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Gamepad2 className="w-5 h-5" />}
-        {loading ? '加入中...' : '加入房间'}
-      </button>
+        <button
+          onClick={handleJoinRoom}
+          disabled={loading || !playerName.trim() || !roomCodeInput.trim()}
+          className={`game-btn game-btn-primary w-full py-3.5 disabled:opacity-50 flex items-center justify-center gap-2 ${focusRing}`}
+        >
+          {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Gamepad2 className="w-5 h-5" />}
+          {loading ? '加入中...' : '加入房间'}
+        </button>
+      </div>
     </div>
   )
 

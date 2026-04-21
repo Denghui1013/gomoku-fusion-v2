@@ -285,6 +285,14 @@ class NetworkManager {
     const requestUrl = `${this.baseUrl}${path}`
     const startedAt = Date.now()
 
+    const parseJsonText = (text: string): T => {
+      try {
+        return JSON.parse(text) as T
+      } catch {
+        throw new Error(`联机服务器返回了非 JSON 响应，请检查地址配置：${requestUrl}`)
+      }
+    }
+
     try {
       const response = await fetch(requestUrl, {
         ...init,
@@ -307,7 +315,8 @@ class NetworkManager {
           })
 
           if (fallbackResponse.ok) {
-            const fallbackData = (await fallbackResponse.json()) as T
+            const fallbackText = await fallbackResponse.text()
+            const fallbackData = parseJsonText(fallbackText)
             this.stats.latency = Date.now() - startedAt
             this.stats.lastMessageTime = Date.now()
             this.stats.messagesReceived += 1
@@ -317,7 +326,8 @@ class NetworkManager {
 
         let errorMessage = `request failed (${response.status})`
         try {
-          const error = await response.json()
+          const errorText = await response.text()
+          const error = JSON.parse(errorText) as { error?: string }
           errorMessage = error.error || errorMessage
         } catch {
           // keep fallback message
@@ -325,7 +335,12 @@ class NetworkManager {
         throw new Error(errorMessage)
       }
 
-      const data = (await response.json()) as T
+      const responseText = await response.text()
+      const contentType = response.headers.get('content-type') || ''
+      if (!contentType.includes('application/json')) {
+        throw new Error(`联机服务器返回了非 JSON 响应，请检查地址配置：${requestUrl}`)
+      }
+      const data = parseJsonText(responseText)
       this.stats.latency = Date.now() - startedAt
       this.stats.lastMessageTime = Date.now()
       this.stats.messagesReceived += 1
@@ -705,6 +720,16 @@ class NetworkManager {
     this.roomId = null
     this.roomCode = ''
     this.playerName = ''
+  }
+
+  reset(): void {
+    this.cleanup()
+    this.role = null
+    this.roomId = null
+    this.roomCode = ''
+    this.playerName = ''
+    this.reconnectAttempts = 0
+    this.shouldReconnect = false
   }
 
   destroy(): void {
