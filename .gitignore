@@ -33,6 +33,9 @@ yarn-error.log*
 *.err.log
 dev-*.log
 prod-*.log
+.tmp-*
+dist/
+.codex/
 
 # env files (can opt-in for committing if needed)
 .env*
