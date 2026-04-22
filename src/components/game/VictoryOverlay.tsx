@@ -657,8 +657,8 @@ export function VictoryOverlay({
 
   const handleBack = useCallback(() => {
     playBack()
-    onBack()
-  }, [onBack, playBack])
+    onClose()
+  }, [onClose, playBack])
 
   const handleViewRank = useCallback(() => {
     window.sessionStorage.setItem(RANK_FROM_PVC_KEY, '1')
@@ -887,7 +887,7 @@ export function VictoryOverlay({
               <button className={`${fusion.buttonSecondary} ${fusion.buttonLight}`} type="button" onClick={handleBack}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                   <ArrowLeft size={16} />
-                  返回选择
+                  返回游戏
                 </span>
               </button>
             </div>

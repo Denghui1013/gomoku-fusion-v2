@@ -150,13 +150,13 @@ const BASE_SCORES = {
 const WIN_STREAK_BONUSES: Record<number, number> = {
   1: 0,   // 1连胜：无加成
   2: 2,   // 2连胜：+2
-  3: 5,   // 3连胜：+5
-  4: 8,   // 4连胜：+8
-  5: 12,  // 5连胜：+12
+  3: 4,   // 3连胜：+4
+  4: 6,   // 4连胜：+6
+  5: 8,   // 5连胜：+8
 }
 
 /** 快速胜利奖励（15步以内获胜） */
-const QUICK_WIN_BONUS = 5
+const QUICK_WIN_BONUS = 3
 
 /** 完美胜利奖励（没有给对手造成威胁） */
 const PERFECT_WIN_BONUS = 3
@@ -166,7 +166,7 @@ const PROTECTION_CONFIG = {
   // 首次达到新段位时的保护场次
   initialProtection: 3,
   // 连败触发保护的门限
-  lossStreakThreshold: 3,
+  lossStreakThreshold: 999,
   // 连败保护提供的保护场次
   lossStreakProtection: 1,
   // 降级保护：0星时额外提供的保护
@@ -270,11 +270,13 @@ export function calculateStarChange(
   currentTier: RankTier,
   currentStars: number,
   protectionMatches: number = 0,
-  lossStreak: number = 0
+  lossStreak: number = 0,
+  winDifficulty: Difficulty = 'easy'
 ): { starChange: number; shouldDemote: boolean; isProtected: boolean; protectionMessage?: string } {
   // 胜利直接+1星
   if (isWin) {
-    return { starChange: 1, shouldDemote: false, isProtected: false }
+    const starGain = winDifficulty === 'hard' ? 3 : winDifficulty === 'medium' ? 2 : 1
+    return { starChange: starGain, shouldDemote: false, isProtected: false }
   }
 
   // 青铜段位不掉星
@@ -305,10 +307,9 @@ export function calculateStarChange(
   // 0星时的降级保护
   if (currentStars === 0) {
     return {
-      starChange: 0,
-      shouldDemote: false,
-      isProtected: true,
-      protectionMessage: '0星保护（再输一场将降级）',
+      starChange: -1,
+      shouldDemote: true,
+      isProtected: false,
     }
   }
 
@@ -433,7 +434,8 @@ export function processMatchResult(
     currentData.currentTier,
     currentData.currentStars,
     currentData.protectionMatches,
-    newLossStreak
+    newLossStreak,
+    result.difficulty
   )
 
   // 检查升段或降级

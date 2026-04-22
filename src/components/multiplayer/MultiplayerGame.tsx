@@ -583,8 +583,8 @@ export default function MultiplayerGame({ multiplayer, onBack }: MultiplayerGame
               <button className={fusion.buttonPrimary} type="button" disabled>
                 等待对手确认
               </button>
-              <button className={`${fusion.buttonSecondary} ${fusion.buttonLight}`} type="button" onClick={leaveRoom}>
-                返回
+              <button className={`${fusion.buttonSecondary} ${fusion.buttonLight}`} type="button" onClick={() => setShowSettlement(false)}>
+                返回游戏
               </button>
             </div>
           ) : undefined
