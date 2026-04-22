@@ -7,7 +7,7 @@ import type {
   NetworkStats,
   RoomInfo,
 } from './types'
-import { getConfiguredMultiplayerServerUrl } from '@/lib/multiplayerConfig'
+import { getConfiguredMultiplayerServerUrl, getMultiplayerServerCandidates } from '@/lib/multiplayerConfig'
 
 type MessageHandler<T = unknown> = (data: {
   payload: T
@@ -20,6 +20,16 @@ type MessageHandler<T = unknown> = (data: {
 type ConnectionHandler = () => void
 type DisconnectHandler = (reason: string) => void
 type ErrorHandler = (error: Error) => void
+
+export class NetworkRequestError extends Error {
+  status?: number
+
+  constructor(message: string, status?: number) {
+    super(message)
+    this.name = 'NetworkRequestError'
+    this.status = status
+  }
+}
 
 class NetworkManager {
   private role: 'host' | 'guest' | null = null
@@ -45,13 +55,15 @@ class NetworkManager {
   }
 
   private baseUrl = ''
+  private candidateBaseUrls: string[] = []
   private pingInterval: NodeJS.Timeout | null = null
   private lastPingTime = 0
   private reconnectAttempts = 0
   private readonly maxReconnectAttempts = 5
   private readonly reconnectDelay = 2000
-  private readonly requestTimeoutMs = 8000
-  private readonly requestRetryCount = 2
+  private readonly requestTimeoutFastMs = 3500
+  private readonly requestTimeoutRetryMs = 9000
+  private readonly requestRetryCount = 1
   private shouldReconnect = true
   private readonly nonRetryableCloseCodes = new Set([1000, 4001, 4004, 4008])
 
@@ -79,6 +91,13 @@ class NetworkManager {
     return this.playerName
   }
 
+  getActiveBaseUrl(): string {
+    if (this.baseUrl) return this.baseUrl
+    const fallback = getConfiguredMultiplayerServerUrl()
+    this.baseUrl = fallback
+    return fallback
+  }
+
   isConnected(): boolean {
     return this.roomId !== null
   }
@@ -90,6 +109,18 @@ class NetworkManager {
   recordLatency(latency: number): void {
     this.stats.latency = latency
     this.stats.lastMessageTime = Date.now()
+  }
+
+  private setCandidateBaseUrls(preferredUrl?: string): void {
+    const candidates = getMultiplayerServerCandidates(preferredUrl)
+    this.candidateBaseUrls = candidates
+    this.baseUrl = candidates[0] || getConfiguredMultiplayerServerUrl()
+  }
+
+  private markBaseUrlHealthy(baseUrl: string): void {
+    const merged = [baseUrl, ...this.candidateBaseUrls.filter((item) => item !== baseUrl)]
+    this.candidateBaseUrls = merged
+    this.baseUrl = baseUrl
   }
 
   private connectWebSocket(roomId: string): void {
@@ -256,22 +287,40 @@ class NetworkManager {
 
   private async requestJson<T>(path: string, init: RequestInit, retries = this.requestRetryCount): Promise<T> {
     let lastError: Error | null = null
+    const baseUrls =
+      this.candidateBaseUrls.length > 0
+        ? [...this.candidateBaseUrls]
+        : getMultiplayerServerCandidates(this.baseUrl || undefined)
 
     for (let attempt = 0; attempt <= retries; attempt += 1) {
-      try {
-        return await this.requestJsonOnce<T>(path, init)
-      } catch (error) {
-        const normalizedError = error instanceof Error ? error : new Error(String(error))
-        lastError = normalizedError
+      const timeoutMs = attempt === 0 ? this.requestTimeoutFastMs : this.requestTimeoutRetryMs
+      for (const baseUrl of baseUrls) {
+        try {
+          const data = await this.requestJsonOnce<T>(baseUrl, path, init, timeoutMs)
+          this.markBaseUrlHealthy(baseUrl)
+          return data
+        } catch (error) {
+          const normalizedError = error instanceof Error ? error : new Error(String(error))
+          lastError = normalizedError
 
-        const retryable =
-          normalizedError.message.startsWith('联机服务器请求超时') ||
-          normalizedError.message.startsWith('无法连接联机服务器')
+          const retryableMessage =
+            normalizedError.message.startsWith('联机服务器请求超时') ||
+            normalizedError.message.startsWith('无法连接联机服务器') ||
+            normalizedError.message.startsWith('联机服务器返回了非 JSON 响应')
 
-        if (!retryable || attempt >= retries) {
-          throw normalizedError
+          if (normalizedError instanceof NetworkRequestError) {
+            const status = normalizedError.status ?? 0
+            const businessError = status >= 400 && status < 500 && status !== 404 && status !== 408 && status !== 429
+            if (businessError) {
+              throw normalizedError
+            }
+          } else if (!retryableMessage) {
+            throw normalizedError
+          }
         }
+      }
 
+      if (attempt < retries) {
         await new Promise((resolve) => setTimeout(resolve, 600 * (attempt + 1)))
       }
     }
@@ -279,10 +328,10 @@ class NetworkManager {
     throw lastError || new Error('联机服务器请求失败')
   }
 
-  private async requestJsonOnce<T>(path: string, init: RequestInit): Promise<T> {
+  private async requestJsonOnce<T>(baseUrl: string, path: string, init: RequestInit, timeoutMs: number): Promise<T> {
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), this.requestTimeoutMs)
-    const requestUrl = `${this.baseUrl}${path}`
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+    const requestUrl = `${baseUrl}${path}`
     const startedAt = Date.now()
 
     const parseJsonText = (text: string): T => {
@@ -301,29 +350,6 @@ class NetworkManager {
       })
 
       if (!response.ok) {
-        const canFallbackToCurrentOrigin =
-          typeof window !== 'undefined' &&
-          response.status === 404 &&
-          path.startsWith('/api/network/undo-') &&
-          this.baseUrl !== window.location.origin
-
-        if (canFallbackToCurrentOrigin) {
-          const fallbackResponse = await fetch(`${window.location.origin}${path}`, {
-            ...init,
-            mode: 'cors',
-            signal: controller.signal,
-          })
-
-          if (fallbackResponse.ok) {
-            const fallbackText = await fallbackResponse.text()
-            const fallbackData = parseJsonText(fallbackText)
-            this.stats.latency = Date.now() - startedAt
-            this.stats.lastMessageTime = Date.now()
-            this.stats.messagesReceived += 1
-            return fallbackData
-          }
-        }
-
         let errorMessage = `request failed (${response.status})`
         try {
           const errorText = await response.text()
@@ -332,7 +358,7 @@ class NetworkManager {
         } catch {
           // keep fallback message
         }
-        throw new Error(errorMessage)
+        throw new NetworkRequestError(errorMessage, response.status)
       }
 
       const responseText = await response.text()
@@ -365,7 +391,7 @@ class NetworkManager {
     this.role = 'host'
     this.shouldReconnect = true
     this.reconnectAttempts = 0
-    this.baseUrl = serverUrl || getConfiguredMultiplayerServerUrl()
+    this.setCandidateBaseUrls(serverUrl || getConfiguredMultiplayerServerUrl())
 
     const data = await this.requestJson<{ room: RoomInfo }>(
       '/api/network/create-room',
@@ -390,7 +416,7 @@ class NetworkManager {
     this.roomCode = roomCode.toUpperCase()
     this.shouldReconnect = true
     this.reconnectAttempts = 0
-    this.baseUrl = serverUrl || getConfiguredMultiplayerServerUrl()
+    this.setCandidateBaseUrls(serverUrl || getConfiguredMultiplayerServerUrl())
 
     const data = await this.requestJson<{ room: RoomInfo }>(
       '/api/network/join-room',
@@ -436,6 +462,18 @@ class NetworkManager {
     ).catch((error) => {
       console.error('[Network] http move fallback failed:', error)
     })
+  }
+
+  async getRoomState(roomId: string): Promise<unknown> {
+    return this.requestJson(
+      `/api/network/room-state?roomId=${encodeURIComponent(roomId)}&t=${Date.now()}`,
+      {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+        cache: 'no-store',
+      },
+      1
+    )
   }
 
   sendGameEnd(

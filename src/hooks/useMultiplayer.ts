@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { networkManager } from '@/network/NetworkManager'
 import { useGomoku } from './useGomoku'
-import { getConfiguredMultiplayerServerUrl } from '@/lib/multiplayerConfig'
 import type {
   ChatPayload,
   GameEndPayload,
@@ -592,7 +591,7 @@ export function useMultiplayer() {
           if (timer) clearInterval(timer)
           return
         }
-        const base = getConfiguredMultiplayerServerUrl()
+        const base = network.getActiveBaseUrl()
         const t0 = Date.now()
         const res = await fetch(
           `${base}/api/network/room-state?roomId=${encodeURIComponent(liveRoomId)}&t=${Date.now()}`,
