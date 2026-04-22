@@ -1,4 +1,5 @@
 const DEFAULT_LOCAL_SERVER_URL = 'http://localhost:3010'
+const DEFAULT_PRODUCTION_SERVER_URL = 'https://yanyan-gomoku.duckdns.org'
 
 function trimTrailingSlash(value: string): string {
   return value.replace(/\/+$/, '')
@@ -10,6 +11,8 @@ export function getConfiguredMultiplayerServerUrl(): string {
     return trimTrailingSlash(configured)
   }
 
+  const isDev = process.env.NODE_ENV === 'development'
+
   if (typeof window !== 'undefined' && /^https?:/i.test(window.location.origin)) {
     const { hostname } = window.location
     if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
@@ -17,7 +20,10 @@ export function getConfiguredMultiplayerServerUrl(): string {
     }
   }
 
-  return DEFAULT_LOCAL_SERVER_URL
+  // Safety rule:
+  // - Dev: allow localhost for local debugging
+  // - Non-dev (production/app): never fall back to localhost
+  return isDev ? DEFAULT_LOCAL_SERVER_URL : DEFAULT_PRODUCTION_SERVER_URL
 }
 
 export function getMultiplayerServerCandidates(preferredUrl?: string): string[] {
@@ -45,7 +51,9 @@ export function getMultiplayerServerCandidates(preferredUrl?: string): string[] 
     push(window.location.origin)
   }
 
-  push(DEFAULT_LOCAL_SERVER_URL)
+  if (process.env.NODE_ENV === 'development') {
+    push(DEFAULT_LOCAL_SERVER_URL)
+  }
   return candidates
 }
 
